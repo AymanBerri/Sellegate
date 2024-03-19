@@ -1,3 +1,7 @@
-from django.contrib import admin
+# item_management/admin.py
 
-# Register your models here.
+from django.contrib import admin
+from .models import Item, Bid
+
+admin.site.register(Item)
+admin.site.register(Bid)

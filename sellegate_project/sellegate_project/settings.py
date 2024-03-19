@@ -28,6 +28,12 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
+# Specify the custom user model for authentication throughout the project.
+# Replace "authentication.User" with the path to your custom user model.
+# This setting ensures that Django uses the custom user model instead of the built-in User model.
+AUTH_USER_MODEL = "authentication.User"
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -41,6 +47,7 @@ INSTALLED_APPS = [
     'item_management',
     'evaluation',
     'transaction',
+    'rest_framework',
     # Other apps
 ]
 
