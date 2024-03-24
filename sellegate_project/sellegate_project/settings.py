@@ -43,11 +43,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'authentication',
     'item_management',
     'evaluation',
     'transaction',
+
     'rest_framework',
+    'rest_framework.authtoken',
+
     # Other apps
 ]
 
