@@ -1,8 +1,8 @@
 from django.shortcuts import render
 
 from rest_framework.views import APIView
-from rest_framework import generics
-
+from rest_framework import generics, status
+from rest_framework.response import Response
 from django.db.models import Q
 from .models import Item
 from .serializers import ItemSerializer
@@ -13,7 +13,7 @@ class ItemSearchAPIView(generics.ListAPIView):
     serializer_class = ItemSerializer
     queryset = Item.objects.all()
     filter_backends = [SearchFilter, OrderingFilter]  # Add filter backends for search and ordering
-    
+
     search_fields = ['title', 'description', 'seller__username']  # Specify fields for search
     ordering_fields = ['price']  # Specify fields for ordering
 
@@ -44,3 +44,11 @@ class ItemSearchAPIView(generics.ListAPIView):
 
         return queryset  # Return the filtered queryset
 
+class ItemDetailView(APIView):
+    def get(self, request, itemId, format=None):
+        try:
+            item = Item.objects.get(pk=itemId)  # Retrieve the item by its ID
+            serializer = ItemSerializer(item)  # Serialize the item
+            return Response(serializer.data, status=status.HTTP_200_OK)  # Return the serialized data
+        except Item.DoesNotExist:
+            return Response({"error": "Item not found"}, status=status.HTTP_404_NOT_FOUND)  # Return 404 if item is not found
