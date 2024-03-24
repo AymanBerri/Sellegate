@@ -6,9 +6,10 @@ from django.db import models
 User = get_user_model()
 
 class Item(models.Model):
-    name = models.CharField(max_length=255)
-    description = models.TextField()
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    thumbnail_url = models.URLField(null=True, blank=True)  
     seller = models.ForeignKey(User, on_delete=models.CASCADE)
     # Other fields for item details like condition, category, etc.
 

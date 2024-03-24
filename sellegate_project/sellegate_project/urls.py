@@ -21,7 +21,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/transaction/', include('transaction.urls')),
     path('api/evaluation/', include('evaluation.urls')),
-    path('api/item_management/', include('item_management.urls')),
+    
+    path('items/', include('item_management.urls')),
 
     path('auth/', include('authentication.urls')), # this path is for the authentication urls, they all are prefixed with "auth/"
     # Add more app URLs as needed
