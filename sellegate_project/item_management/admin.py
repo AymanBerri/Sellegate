@@ -5,7 +5,7 @@ from .models import Item, Bid
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    list_display = ('title', 'price', 'seller')
+    list_display = ('title', 'price', 'seller', 'delegation_state')
     search_fields = ('title', 'seller__username')
 
     

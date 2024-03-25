@@ -8,6 +8,35 @@ from .models import Item
 from .serializers import ItemSerializer
 from rest_framework.filters import SearchFilter, OrderingFilter
 
+class ItemListCreateAPIView(APIView):
+
+    def post(self, request, format=None):
+        """
+        Create a new item.
+
+        Example payload:
+        {
+            "seller_id": 26,
+            "title": "New Item",
+            "description": "Description of the item",
+            "price": "99.99",
+            "category": "Electronics",
+            "delegation_state": "Pending"
+        }
+        """
+
+         # Create a serializer instance with the request data
+        serializer = ItemSerializer(data=request.data)
+
+        # Check if the serializer is valid
+        if serializer.is_valid():
+            # If valid, save the item to the database
+            item = serializer.save()
+            # Return the serialized data with status 201 (Created)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            # If serializer is not valid, return errors with status 400 (Bad Request)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ItemSearchAPIView(generics.ListAPIView):
     serializer_class = ItemSerializer

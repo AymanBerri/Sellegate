@@ -11,6 +11,16 @@ class Item(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     thumbnail_url = models.URLField(null=True, blank=True)  
     seller = models.ForeignKey(User, on_delete=models.CASCADE)
+
+
+    # Define choices for delegation state
+    DELEGATION_STATE_CHOICES = (
+        ('Pending', 'Pending'),
+        ('Approved', 'Approved'),
+        ('Rejected', 'Rejected'),
+    )
+    delegation_state = models.CharField(max_length=100, choices=DELEGATION_STATE_CHOICES)  # Add delegation state field with predefined choices
+
     # Other fields for item details like condition, category, etc.
 
 class Bid(models.Model):
