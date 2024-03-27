@@ -1,12 +1,81 @@
 from django.shortcuts import render
 
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework import generics, status
 from rest_framework.response import Response
 from django.db.models import Q
-from .models import Item
-from .serializers import ItemSerializer
+from .models import Item, Purchase
+from .serializers import ItemSerializer, PurchaseSerializer
 from rest_framework.filters import SearchFilter, OrderingFilter
+
+class PurchaseItemAPIView(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure user is authenticated
+    
+    def post(self, request, format=None):
+        """
+        Purchase an item directly.
+        """
+        # Extract data from the request body
+        item_id = request.data.get('itemId')
+        quantity = request.data.get('quantity')
+        
+        # Get the authenticated user making the request
+        # In this view the person making the request is the Buyer. If desired otherwise, defining whom the
+        # buyer is, adding the buyer_id to the request payload and modifying the view is mandatory.
+        buyer = request.user  # Assuming user is authenticated
+        
+        # Fetch the item from the database
+        try:
+            item = Item.objects.get(id=item_id)
+        except Item.DoesNotExist:
+            return Response({"error": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if the item's delegation state allows purchase
+        if item.delegation_state not in ['Approved', 'Independent']:
+            return Response({"error": f"Item cannot be purchased due to delegation state, presently {item.delegation_state}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Calculate total price
+        total_price = item.price * quantity
+
+        # Create a new purchase with the buyer set
+        purchase = Purchase.objects.create(item=item, buyer=buyer, quantity=quantity, total_price=total_price)
+
+        # Serialize the purchase data
+        serializer = PurchaseSerializer(purchase)
+
+        # Return the response
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+# # missing buyer_id
+# class PurchaseItemAPIView(APIView):
+#     def post(self, request, format=None):
+#         """
+#         Purchase an item directly.
+#         """
+#         # Extract data from the request body
+#         item_id = request.data.get('itemId')
+#         quantity = request.data.get('quantity')
+
+#         # Fetch the item from the database
+#         try:
+#             item = Item.objects.get(id=item_id)
+#         except Item.DoesNotExist:
+#             return Response({"error": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
+
+#         # Calculate total price
+#         total_price = item.price * quantity
+
+#         # Create a new purchase
+#         purchase = Purchase.objects.create(item=item, quantity=quantity, total_price=total_price)
+
+#         # Serialize the purchase data
+#         serializer = PurchaseSerializer(purchase)
+
+#         # Return the response
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class ItemListCreateAPIView(APIView):
 
