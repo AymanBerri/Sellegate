@@ -27,4 +27,8 @@ class PurchaseAdmin(admin.ModelAdmin):
         }),
     )
     
+
+
+
+
 admin.site.register(Bid)

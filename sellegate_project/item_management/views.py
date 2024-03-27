@@ -9,6 +9,9 @@ from .models import Item, Purchase
 from .serializers import ItemSerializer, PurchaseSerializer
 from rest_framework.filters import SearchFilter, OrderingFilter
 
+
+
+
 class PurchaseItemAPIView(APIView):
     permission_classes = [IsAuthenticated]  # Ensure user is authenticated
     
@@ -46,36 +49,6 @@ class PurchaseItemAPIView(APIView):
 
         # Return the response
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-
-# # missing buyer_id
-# class PurchaseItemAPIView(APIView):
-#     def post(self, request, format=None):
-#         """
-#         Purchase an item directly.
-#         """
-#         # Extract data from the request body
-#         item_id = request.data.get('itemId')
-#         quantity = request.data.get('quantity')
-
-#         # Fetch the item from the database
-#         try:
-#             item = Item.objects.get(id=item_id)
-#         except Item.DoesNotExist:
-#             return Response({"error": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
-
-#         # Calculate total price
-#         total_price = item.price * quantity
-
-#         # Create a new purchase
-#         purchase = Purchase.objects.create(item=item, quantity=quantity, total_price=total_price)
-
-#         # Serialize the purchase data
-#         serializer = PurchaseSerializer(purchase)
-
-#         # Return the response
-#         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
 
 class ItemListCreateAPIView(APIView):
 
