@@ -4,27 +4,13 @@ from item_management.serializers import ItemSerializer
 from item_management.models import Item
 
 
-
-# class CartItemSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = CartItem
-#         fields = ['cart_item_id', 'cart_id', 'item_id', 'quantity', 'created_at']
-#         read_only_fields = ['cart_id', 'created_at']  # These fields are read-only
-
-# class CartSerializer(serializers.ModelSerializer):
-#     cart_items = CartItemSerializer(many=True, read_only=True)  # Serializer for cart items
-
-#     class Meta:
-#         model = Cart
-#         fields = ['cart_id', 'user', 'created_at', 'cart_items']
-#         read_only_fields = ['user', 'created_at', 'cart_items']  # These fields are read-only
-
 class CartItemSerializer(serializers.ModelSerializer):
     subtotal = serializers.SerializerMethodField()  # Define SerializerMethodField for subtotal
+    # item_title = serializers.ReadOnlyField(source='item.title')  # Add item_title field to display item title
 
     class Meta:
         model = CartItem
-        # fields = ['id', 'cart_id', 'item_id', 'quantity', 'created_at']
+        # fields = ['id', 'cart_id', 'item_id', 'item_title', 'quantity', 'created_at']
         fields = ['id', 'item_id', 'quantity', 'subtotal']
         read_only_fields = ['cart', 'created_at']  # These fields are read-only
 

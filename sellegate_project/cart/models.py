@@ -13,11 +13,14 @@ class Cart(models.Model):
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(default=1)
+    quantity = models.PositiveIntegerField(default = 0)
     created_at = models.DateTimeField(default=timezone.now)
 
     def subtotal(self):
         return self.quantity * self.item.price
+    
+    def __str__(self):
+        return self.item.title  # Display item title in the admin interface
 
 
 
