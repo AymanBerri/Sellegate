@@ -1,0 +1,3 @@
+username: admin
+email: "no email"
+password: 123
