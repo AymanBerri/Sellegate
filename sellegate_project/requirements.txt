@@ -1,0 +1,11 @@
+# Django
+Django>=4.2,<5.0
+
+# Django REST Framework
+djangorestframework>=3.14
+
+# Token-based Authentication
+djangorestframework.authtoken>=3.14  # Needed for token-based authentication
+
+# Security Enhancements
+django-cors-headers>=3.13  # To handle CORS (Cross-Origin Resource Sharing)
