@@ -7,6 +7,8 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import AllowAny
+
 
 
 
@@ -16,11 +18,40 @@ from .models import User
 from .serializers import UserSerializer
 
 class UserRegistrationAPIView(APIView):
+    permission_classes = [AllowAny]  # Allow public access, no token required
+
     def post(self, request):
-        '''
-        Register a new user using powershell console:
-            Invoke-RestMethod -Method Post -Uri "http://localhost:8000/auth/register/" -Body '{"username": "new_user", "email": "new_user@example.com", "password": "password123"}' -ContentType "application/json"
-        '''
+        """
+            ### Registering a User with Postman (Form Data)
+
+            To send a POST request to register a user in Postman:
+
+            1. **Set the HTTP Method to POST**:
+            - Select `POST` from the method dropdown.
+
+            2. **Enter the Endpoint URL**:
+            - Type the endpoint for user registration, like `http://localhost:8000/auth/register/`.
+
+            3. **Set the Headers**:
+            - `Authorization` is not needed for registration.
+            - Postman will set `Content-Type` automatically for form data.
+
+            4. **Set the Request Body**:
+            - Click on the "Body" tab.
+            - Add key-value pairs for form data, as needed for registration. Example:
+                - `username`: `"new_username"`
+                - `email`: `"your_email@example.com"`
+                - `password`: `"your_password"`
+
+            5. **Send the Request**:
+            - Click "Send" to submit the request.
+            - If successful, you'll receive a JSON response with user details and a token.
+            - If registration fails, an error message will indicate validation errors or other issues.
+
+            6. **Using the Token**:
+            - If registration is successful, keep the token for future authenticated requests.
+            - Use it in the `Authorization` header as `Token <your_token>`.
+            """
 
         # Deserialize request data
         serializer = UserSerializer(data=request.data)
@@ -48,11 +79,40 @@ class UserRegistrationAPIView(APIView):
     
 
 class UserLoginAPIView(APIView):
+    permission_classes = [AllowAny]  # Allow public access, no token required
+
     def post(self, request):
-        '''
-        Login a user using powershell console:
-            Invoke-RestMethod -Method Post -Uri "http://localhost:8000/auth/login/" -Body '{"email": "new_user@example.com", "password": "password123"}' -ContentType "application/json"
-        '''
+        """
+            ### Logging in with Postman (Form Data)
+
+            To send a POST request for login using form data in Postman:
+
+            1. **Set the HTTP Method to POST**:
+            - Select `POST` from the method dropdown.
+
+            2. **Enter the Endpoint URL**:
+            - Type the URL for the login endpoint, like `http://localhost:8000/auth/login/`.
+
+            3. **Set the Headers**:
+            - No `Authorization` header is needed for login.
+            - Postman will set `Content-Type` automatically for form data.
+
+            4. **Set the Request Body**:
+            - Click on the "Body" tab.
+            - Add the key-value pairs for form data:
+                - `email`: `"your_email@example.com"`
+                - `password`: `"your_password"`
+
+            5. **Send the Request**:
+            - Click "Send" to submit the request.
+            - If successful, you'll receive a JSON response with a token and user info.
+            - If login fails, an error message will indicate why.
+
+            6. **Using the Token**:
+            - If login is successful, keep the token for future authenticated requests.
+            - Use it in the `Authorization` header as `Token <your_token>`.
+        """
+
 
         # Extract email and password from request data
         email = request.data.get('email')
@@ -106,7 +166,7 @@ class UserLogoutAPIView(APIView):
         '''
         Logout a user using powershell console:
             Invoke-RestMethod -Method Post -Uri "http://localhost:8000/auth/logout/" -Headers @{ "Authorization" = "Token <your_token_here>" }
-            Invoke-RestMethod -Method Post -Uri "http://localhost:8000/auth/logout/" -Headers @{ "Authorization" = "Token fb51c4660eafd317f1bb3fdb347e728d39e86583" }
+            Invoke-RestMethod -Method Post -Uri "http://localhost:8000/auth/logout/" -Headers @{ "Authorization" = "Token 71c2fa175cf0b2e8f73ed7ba20ee65d2870c9e5c" }
         '''
 
 
