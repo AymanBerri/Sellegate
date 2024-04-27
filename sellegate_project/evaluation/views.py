@@ -3,14 +3,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.core.exceptions import ObjectDoesNotExist
 
 from item_management.models import Item
 from item_management.serializers import ItemSerializer
 
+from .models import EvaluationRequest
+from .serializers import EvaluationRequestSerializer
 
 # Create your views here.
-
-
 
 class SearchItemsToEvaluateAPIView(APIView):
     def get(self, request):
@@ -29,7 +30,6 @@ class SearchItemsToEvaluateAPIView(APIView):
         3. **Set the Headers**:
         - If required, add the `Authorization` header with your token:
             - `Authorization`: `Token <your_token_here>`  # Replace with your token
-        - `Content-Type` is generally set to `application/json` for GET requests.
 
         4. **Send the Request**:
         - Click "Send" to submit the GET request.
@@ -62,3 +62,61 @@ class SearchItemsToEvaluateAPIView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+    
+
+
+# MUST RETURN EVALUATOR ID, FIX IT
+class SendItemAssessmentRequestAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # Ensure the authenticated user is an evaluator
+        if not request.user.is_evaluator:
+            return Response(
+                {"error": "Only evaluators can send assessment requests."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        item_id = request.data.get("item_id")
+        message = request.data.get("message", "")
+
+        if not item_id:
+            return Response(
+                {"error": "item_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            item = Item.objects.get(id=item_id)
+        except ObjectDoesNotExist:
+            return Response(
+                {"error": "Item not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Provide necessary data to the serializer
+        data = {
+            "item_id": item_id,  # Item primary key
+            "message": message,  # Optional message
+        }
+
+        # Use the serializer to validate and create the evaluation request
+        serializer = EvaluationRequestSerializer(data=data)
+
+        if serializer.is_valid():
+            # Save with the authenticated user as the evaluator
+            evaluation_request = serializer.save(
+                item=item,
+                evaluator=request.user,  # Manually set the evaluator to the authenticated user
+                status="requested",  # Set the status to 'requested'
+            )
+
+            # Serialize the response to ensure the correct data is returned
+            response_serializer = EvaluationRequestSerializer(evaluation_request)
+
+            return Response(
+                response_serializer.data,
+                status=status.HTTP_201_CREATED,
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
