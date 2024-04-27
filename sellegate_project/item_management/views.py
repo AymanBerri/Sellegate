@@ -9,6 +9,7 @@ from .models import Item, Purchase
 from .serializers import ItemSerializer, PurchaseSerializer
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import AllowAny
+from django.core.exceptions import PermissionDenied
 
 
 
@@ -319,7 +320,7 @@ class UserSoldItemsAPIView(APIView):
         ### Important Note
         This endpoint returns only the items that have been sold (`is_sold = true`). It does not return all items listed by the user.
         """
-        
+
         # Get all items where the authenticated user is the seller
         items_sold = Item.objects.filter(seller=request.user, is_sold=True)
 
@@ -335,3 +336,57 @@ class UserSoldItemsAPIView(APIView):
                 {"message": "No items sold by this user."},
                 status=status.HTTP_200_OK
             )
+        
+class DeleteItemAPIView(APIView):
+    """
+    API endpoint to delete an item by ID.
+    The user must be authenticated and be the owner or seller of the item.
+    """
+    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
+
+    def delete(self, request, item_id, format=None):
+        """
+        ### Deleting an Item with Postman
+
+        To delete an item using Postman, follow these steps:
+
+        1. **Set HTTP Method to DELETE**:
+        - Select `DELETE` from the method dropdown.
+
+        2. **Enter the Endpoint URL**:
+        - Use the URL for deleting an item by its ID. Example: `http://localhost:8000/items/delete-item/1/`.
+
+        3. **Set the Headers**:
+        - Add the `Authorization` header with your authentication token:
+            - `Authorization`: `Token <your_token_here>`  # Replace `<your_token_here>` with your actual token
+
+        4. **Send the Request**:
+        - Click "Send" to submit the DELETE request.
+        - If successful, you'll receive a `200 OK` response with a success message.
+        - If there's an error, check the response body for details.
+
+        5. **Handling Errors**:
+        - **404 Not Found**: If the item ID does not exist.
+        - **403 Forbidden**: If you don't have permission to delete the item (you are not the owner).
+        """
+        try:
+            # Fetch the item by ID
+            item = Item.objects.get(id=item_id)
+
+            # Check if the authenticated user is the seller/owner of the item
+            if item.seller != request.user:
+                raise PermissionDenied("You do not have permission to delete this item.")
+
+            # Delete the item if permission is granted
+            item.delete()
+
+            # Return a success response
+            return Response({"message": "Item deleted successfully."}, status=status.HTTP_200_OK)
+
+        except Item.DoesNotExist:
+            # Return a 404 if the item does not exist
+            return Response({"error": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        except PermissionDenied:
+            # Return a 403 if the user does not have permission
+            return Response({"error": "You do not have permission to delete this item."}, status=status.HTTP_403_FORBIDDEN)

@@ -37,12 +37,24 @@ class Purchase(models.Model):
     """
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     buyer = models.ForeignKey(User, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField()
+    quantity = models.PositiveIntegerField(default=1)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     purchase_date = models.DateTimeField(auto_now_add=True)
 
-    # def __str__(self):
-    #     return f"Purchase of {self.item.title} by {self.buyer.username}"
+    def save(self, *args, **kwargs):
+        # Calculate `total_price` if not already set (THIS WAS ADDED TO HANDLE THE PROBLEM OF AHNDLING THE -
+        # total_price WHEN CREATING A PURCHASE IN THE ADMIN WEBSITE)
+        if self.total_price is None:
+            self.total_price = self.item.price * self.quantity
+
+        self.item.is_sold = True
+        self.item.is_visible = False
+        self.item.save()
+        
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Purchase of {self.item.title} by {self.buyer.username}"
     def get_item_name(self):
         return self.item.title  # Return the title of the associated item
 

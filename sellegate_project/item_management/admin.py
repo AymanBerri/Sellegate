@@ -35,7 +35,9 @@ class PurchaseAdmin(admin.ModelAdmin):
     readonly_fields = ('id', 'total_price', 'purchase_date')
     fieldsets = (
         ('Purchase Details', {
-            'fields': ('id', 'buyer', 'item', 'quantity', 'total_price', 'purchase_date')
+            # 'fields': ('buyer', 'item', 'quantity')
+            'fields': ('buyer', 'item')
+
         }),
     )
     
