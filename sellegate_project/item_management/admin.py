@@ -5,13 +5,25 @@ from .models import Item, Purchase, Bid
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'price', 'seller', 'delegation_state')
-    list_filter = ('delegation_state', 'seller')
+    list_display = ('id', 'title', 'price', 'seller', 'delegation_state', 'created_at', 'is_sold', 'is_visible')
+    list_filter = ('delegation_state', 'seller', 'is_sold', 'is_visible')
     search_fields = ('title', 'description', 'seller__username')
-    readonly_fields = ('id',)
+    readonly_fields = ('id', 'created_at')  # `created_at` is read-only, set by the system
+    
     fieldsets = (
         ('Item Details', {
-            'fields': ('id', 'title', 'description', 'price', 'thumbnail_url', 'seller', 'delegation_state')
+            'fields': (
+                'id',
+                'title',
+                'description',
+                'price',
+                'thumbnail_url',
+                'seller',
+                'delegation_state',
+                'created_at',  # Include creation timestamp
+                'is_sold',  # Indicate if the item is sold
+                'is_visible',  # Indicate if the item is visible to buyers
+            )
         }),
     )
 
