@@ -57,51 +57,100 @@ class ItemSerializer(serializers.ModelSerializer):
         return item
 
 
-class PurchaseSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the Purchase model.
-    """
-
-    class Meta:
-        model = Purchase
-        fields = ['id', 'item_id', 'buyer_id', 'quantity', 'total_price', 'purchase_date']
-        read_only_fields = ['id', 'purchase_date']  # Ensure some fields are read-only
-
-    def validate_item_id(self, value):
-        """
-        Validate that the item hasn't been sold already.
-        """
-        item = Item.objects.get(pk=value)
-        if item.is_sold:
-            raise serializers.ValidationError("This item has already been sold.")
-        return value
-
-    def create(self, validated_data):
-        """
-        Create a new purchase and mark the item as sold.
-        """
-        item_id = validated_data['item_id']
-        item = Item.objects.get(pk=item_id)
-        
-        # Mark the item as sold
-        item.is_sold = True
-        item.save()
-
-        # Create the purchase
-        return super().create(validated_data)
-
-
 # class PurchaseSerializer(serializers.ModelSerializer):
 #     """
 #     Serializer for the Purchase model.
 #     """
 
+#     item_id = serializers.IntegerField(required=True)  # Required and must be an integer
+
 #     class Meta:
 #         model = Purchase
 #         fields = ['id', 'item_id', 'buyer_id', 'quantity', 'total_price', 'purchase_date']
+#         read_only_fields = ['id', 'purchase_date']  # Ensure some fields are read-only
+
+#     def validate_item_id(self, value):
+#         """
+#         Validate that the item hasn't been sold already.
+#         """
+#         item = Item.objects.get(pk=value)
+        
+#         if item.is_sold:
+#             raise serializers.ValidationError("This item has already been sold.")
+#         return value
+
+#     def create(self, validated_data):
+#         """
+#         Create a new purchase and mark the item as sold.
+#         """
+#         item_id = validated_data['item_id']
+#         item = Item.objects.get(pk=item_id)
+        
+#         # # Mark the item as sold
+#         # item.is_sold = True
+#         # item.is_visible = False
+#         # item.save()
+
+#         # Create the purchase
+#         return super().create(validated_data)
 
 
+class PurchaseSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Purchase model.
+    """
+    item_id = serializers.IntegerField(required=True)  # Ensure this field is required
+    quantity = serializers.IntegerField(default=1)  # Default to 1 if not provided
 
+    class Meta:
+        model = Purchase
+        fields = ['id', 'item_id', 'buyer_id', 'quantity', 'total_price', 'purchase_date']
+        read_only_fields = ['id', 'purchase_date', 'total_price']  # Read-only derived fields
+
+    def validate_item_id(self, value):
+        """
+        Validate that the item is valid, not sold, and visible.
+        """
+        if value <= 0:
+            raise serializers.ValidationError("item_id must be a positive integer.")
+
+        try:
+            item = Item.objects.get(pk=value)
+        except Item.DoesNotExist:
+            raise serializers.ValidationError("Item not found.")
+
+        if item.is_sold:
+            raise serializers.ValidationError("This item has already been sold.")
+
+        if not item.is_visible:
+            raise serializers.ValidationError("This item is not visible and cannot be purchased.")
+
+        return value
+
+    def create(self, validated_data):
+        """
+        Create a new Purchase and calculate total_price.
+        """
+        item_id = validated_data['item_id']
+        item = Item.objects.get(pk=item_id)
+
+        # Default quantity to 1
+        quantity = 1
+        
+        # Calculate total_price based on item price and quantity
+        total_price = item.price * quantity
+        print(validated_data)
+
+        # Get the buyer instance from validated_data
+        buyer = validated_data['buyer']
+
+        # Create the Purchase
+        return Purchase.objects.create(
+            item=item,
+            buyer=buyer,
+            quantity=quantity,
+            total_price=total_price,
+        )
 
 class BidSerializer(serializers.ModelSerializer):
     class Meta:
