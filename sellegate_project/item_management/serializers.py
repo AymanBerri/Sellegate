@@ -17,7 +17,7 @@ class ItemSerializer(serializers.ModelSerializer):
     # If the provided ID does not correspond to an existing user, it raises an "Invalid pk" exception.
     # Django REST Framework automatically checks whether the referenced user exists in the database.
 
-    is_visible = serializers.BooleanField(required=True)  # Explicitly required field
+    is_visible = serializers.BooleanField(required=True, allow_null=False)  # Explicitly required field
     title = serializers.CharField(required=True)
     description = serializers.CharField(required=True)
     price = serializers.DecimalField(max_digits=10, decimal_places=2, required=True)
@@ -55,45 +55,6 @@ class ItemSerializer(serializers.ModelSerializer):
         # Create and return the new item instance
         item = Item.objects.create(seller=seller, **validated_data)
         return item
-
-
-# class PurchaseSerializer(serializers.ModelSerializer):
-#     """
-#     Serializer for the Purchase model.
-#     """
-
-#     item_id = serializers.IntegerField(required=True)  # Required and must be an integer
-
-#     class Meta:
-#         model = Purchase
-#         fields = ['id', 'item_id', 'buyer_id', 'quantity', 'total_price', 'purchase_date']
-#         read_only_fields = ['id', 'purchase_date']  # Ensure some fields are read-only
-
-#     def validate_item_id(self, value):
-#         """
-#         Validate that the item hasn't been sold already.
-#         """
-#         item = Item.objects.get(pk=value)
-        
-#         if item.is_sold:
-#             raise serializers.ValidationError("This item has already been sold.")
-#         return value
-
-#     def create(self, validated_data):
-#         """
-#         Create a new purchase and mark the item as sold.
-#         """
-#         item_id = validated_data['item_id']
-#         item = Item.objects.get(pk=item_id)
-        
-#         # # Mark the item as sold
-#         # item.is_sold = True
-#         # item.is_visible = False
-#         # item.save()
-
-#         # Create the purchase
-#         return super().create(validated_data)
-
 
 class PurchaseSerializer(serializers.ModelSerializer):
     """
