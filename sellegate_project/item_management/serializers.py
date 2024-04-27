@@ -4,6 +4,8 @@ from rest_framework import serializers
 from .models import Item, Purchase, Bid
 from authentication.serializers import UserSerializer
 from authentication.models import User
+from django.core.exceptions import ValidationError
+
 
 class ItemSerializer(serializers.ModelSerializer):
     """
@@ -38,7 +40,18 @@ class ItemSerializer(serializers.ModelSerializer):
             'is_sold', 
             
         ]
-        read_only_fields = ['created_at']  # Ensure created_at is read-only in the serializer
+        read_only_fields = ['id', 'seller_id', 'created_at', 'is_sold']  # Fields that shouldn't be updated
+
+    def validate(self, data):
+        # List of read-only fields
+        read_only_fields = ['seller_id', 'created_at', 'is_sold', 'id']
+
+        # Check if any read-only field is being updated
+        for field in read_only_fields:
+            if field in data:
+                raise serializers.ValidationError(f"Cannot update read-only field: {field}")
+
+        return data  # Return validated data
 
 
     def create(self, validated_data):

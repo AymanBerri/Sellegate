@@ -48,8 +48,7 @@ class PurchaseItemAPIView(APIView):
             - **400 Bad Request**: If the request data is invalid (e.g., missing required fields, incorrect data type, etc.).
             - **404 Not Found**: If the specified `item_id` does not exist.
         """
-
-
+       
         # Validate the request data with the serializer
         serializer = PurchaseSerializer(data=request.data)
 
@@ -337,6 +336,65 @@ class UserSoldItemsAPIView(APIView):
                 status=status.HTTP_200_OK
             )
         
+class UpdateItemAPIView(APIView):
+    """
+    API endpoint to update an item by ID.
+    The user must be authenticated and the owner/seller of the item.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, item_id, format=None):
+        ALLOWED_FIELDS = ["title", "description", "price", "thumbnail_url", "delegation_state", "is_visible"]
+
+        if not request.data:
+            # If the request body is empty, return feedback
+            return Response(
+                {"error": "No fields provided for update."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # Fetch the item by ID
+            item = Item.objects.get(id=item_id)
+
+            # Ensure the authenticated user is the seller/owner of the item
+            if item.seller != request.user:
+                raise PermissionDenied("You do not have permission to update this item.")
+
+            # Check for any fields that are not allowed for update
+            invalid_fields = [field for field in request.data.keys() if field not in ALLOWED_FIELDS]
+
+            if invalid_fields:
+                # Return an error message if there are invalid fields
+                return Response(
+                    {"error": f"Cannot update the following fields: {', '.join(invalid_fields)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Use the serializer for partial updates
+            serializer = ItemSerializer(item, data=request.data, partial=True)
+
+            if serializer.is_valid():
+                # Save the valid data
+                item_updated = serializer.save()
+
+                # Return success response with updated item data
+                return Response(
+                    {"message": "Item updated successfully.", "item": ItemSerializer(item_updated).data},
+                    status=status.HTTP_200_OK
+                )
+            else:
+                # If validation fails, return errors with a 400 status
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        except Item.DoesNotExist:
+            # Return a 404 if the item does not exist
+            return Response({"error": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        except PermissionDenied:
+            # Return a 403 if the user does not have permission
+            return Response({"error": "You do not have permission to update this item."}, status=status.HTTP_403_FORBIDDEN)
+
 class DeleteItemAPIView(APIView):
     """
     API endpoint to delete an item by ID.

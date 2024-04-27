@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ItemSearchAPIView, ItemDetailView, ItemListCreateAPIView, PurchaseItemAPIView, UserPurchasesAPIView, UserSoldItemsAPIView, DeleteItemAPIView
+from .views import ItemSearchAPIView, ItemDetailView, ItemListCreateAPIView, PurchaseItemAPIView, UserPurchasesAPIView, UserSoldItemsAPIView, DeleteItemAPIView, UpdateItemAPIView
 
 
 urlpatterns = [
@@ -14,6 +14,9 @@ urlpatterns = [
 
     # URL for fetching all items sold by the authenticated user
     path('my-sold-items/', UserSoldItemsAPIView.as_view(), name='user-sold-items'),
+
+    # URL for updating an item by its ID
+    path('update-item/<int:item_id>/', UpdateItemAPIView.as_view(), name='update-item'),
 
     # URL for deleting an item by its ID
     path('delete-item/<int:item_id>/', DeleteItemAPIView.as_view(), name='delete-item'),
