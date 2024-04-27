@@ -237,3 +237,101 @@ class ItemDetailView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)  # Return the serialized data
         except Item.DoesNotExist:
             return Response({"error": "Item not found"}, status=status.HTTP_404_NOT_FOUND)  # Return 404 if item is not found
+        
+class UserPurchasesAPIView(APIView):
+    """
+    API endpoint to get all purchases of the authenticated user.
+    """
+    permission_classes = [IsAuthenticated]  # Require authentication
+
+    def get(self, request, format=None):
+
+        """
+            ### Fetching All Purchases of the Authenticated User with Postman
+
+            To fetch all purchases made by the authenticated user, follow these steps:
+
+            1. **Set HTTP Method to GET**:
+            - Select `GET` from the method dropdown.
+
+            2. **Enter the Endpoint URL**:
+            - Use the URL for fetching purchases. Example: `http://localhost:8000/items/my-purchases/`.
+
+            3. **Set the Headers**:
+            - Add the `Authorization` header with your authentication token:
+                - `Authorization`: `Token <your_token_here>`  # Replace `<your_token_here>` with your actual token
+
+            4. **Send the Request**:
+            - Click "Send" to submit the GET request.
+            - If successful, you'll receive a `200 OK` response with the serialized list of purchases.
+
+            5. **Handling Errors**:
+            - If the response is empty, it may indicate no purchases were found for the authenticated user.
+            - If you receive a `401 Unauthorized`, ensure your authentication token is valid and you have appropriate permissions.
+            """
+
+        # Get all purchases for the authenticated user
+        purchases = Purchase.objects.filter(buyer=request.user)
+
+        if purchases.exists():  # Check if there are any purchases
+            # Serialize the purchases
+            serializer = PurchaseSerializer(purchases, many=True)
+
+            # Return the serialized data with HTTP 200
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            # If no purchases were found, return a message indicating that
+            return Response(
+                {"message": "No purchases found for this user."},
+                status=status.HTTP_200_OK
+            )
+
+class UserSoldItemsAPIView(APIView):
+    """
+    API endpoint to get all items sold by the authenticated user.
+    """
+    permission_classes = [IsAuthenticated]  # Require authentication
+
+    def get(self, request, format=None):
+        """
+        ### Fetching All Sold Items of the Authenticated User with Postman
+
+        To fetch all items sold by the authenticated user, follow these steps:
+
+        1. **Set HTTP Method to GET**:
+        - Select `GET` from the method dropdown.
+
+        2. **Enter the Endpoint URL**:
+        - Use the URL for fetching sold items. Example: `http://localhost:8000/items/my-sold-items/`.
+
+        3. **Set the Headers**:
+        - Add the `Authorization` header with your authentication token:
+            - `Authorization`: `Token <your_token_here>`  # Replace `<your_token_here>` with your actual token
+
+        4. **Send the Request**:
+        - Click "Send" to submit the GET request.
+        - If successful, you'll receive a `200 OK` response with the serialized list of sold items.
+
+        5. **Handling Errors**:
+        - If the response is empty, it may indicate no items were sold by the authenticated user.
+        - If you receive a `401 Unauthorized`, ensure your authentication token is valid and you have appropriate permissions.
+
+        ### Important Note
+        This endpoint returns only the items that have been sold (`is_sold = true`). It does not return all items listed by the user.
+        """
+        
+        # Get all items where the authenticated user is the seller
+        items_sold = Item.objects.filter(seller=request.user, is_sold=True)
+
+        if items_sold.exists():  # Check if there are any sold items
+            # Serialize the items
+            serializer = ItemSerializer(items_sold, many=True)
+
+            # Return the serialized data with HTTP 200
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            # If no sold items were found, return a message indicating that
+            return Response(
+                {"message": "No items sold by this user."},
+                status=status.HTTP_200_OK
+            )
