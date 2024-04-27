@@ -6,16 +6,28 @@ from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import AllowAny
-
-
-
-
 
 from django.contrib.auth import authenticate, login, logout
 from .models import User
 from .serializers import UserSerializer
+
+
+class UserDetailAPIView(APIView):
+    # Require authentication
+    permission_classes = [IsAuthenticated] #Currently any authenticated user can get any other user. We can add more constrains later
+
+    def get(self, request, id):
+        # Retrieve the user by ID, or return 404 if not found
+        user = get_object_or_404(User, id=id)
+        
+        # Serialize user details for the response
+        user_serializer = UserSerializer(user)
+        
+        # Return serialized user data
+        return Response(user_serializer.data, status=status.HTTP_200_OK)
 
 class UserRegistrationAPIView(APIView):
     permission_classes = [AllowAny]  # Allow public access, no token required
