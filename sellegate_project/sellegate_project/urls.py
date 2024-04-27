@@ -20,11 +20,11 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/transaction/', include('transaction.urls')),
-    path('api/evaluation/', include('evaluation.urls')),
+
+    path('evaluation/', include('evaluation.urls')),
 
     path('cart/', include('cart.urls')),
 
-    
     path('items/', include('item_management.urls')),
 
     path('auth/', include('authentication.urls')), # this path is for the authentication urls, they all are prefixed with "auth/"

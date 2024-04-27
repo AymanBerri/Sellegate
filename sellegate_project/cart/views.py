@@ -20,24 +20,47 @@ This API view is responsible for adding an item to the user's cart.
 
     def post(self, request):
         """
-        Add an item to the user's cart.
+            ### Adding an Item to the Cart with Postman (Form Data)
 
-        Request Format:
-        ---------------
-        {
-            "item_id": <item_id>,
-            "quantity": <quantity>  # Optional, defaults to 1 if not provided
-        }
+            To add an item to the cart in Postman, follow these steps:
 
-        - "item_id": (integer) The ID of the item to be added to the cart.
-        - "quantity": (integer) The quantity of the item to be added to the cart. Optional. If not provided, defaults to 1.
+            1. **Set the HTTP Method to POST**:
+            - Select `POST` from the method dropdown.
 
-        Returns:
-        --------
-        Returns a JSON response indicating the success or failure of the operation along with the updated cart data if successful.
-        """
-        item_id = request.data.get('item_id')  
-        quantity = request.data.get('quantity', 1)  # Default quantity is 1 if not provided
+            2. **Enter the Endpoint URL**:
+            - Use the URL for adding an item to the cart. Example: `http://localhost:8000/api/cart/`.
+
+            3. **Set the Headers**:
+            - Add the `Authorization` header with your token:
+                - `Authorization`: `Token <your_token_here>`  # Replace with your token
+            - `Content-Type` will be set automatically for form data.
+
+            4. **Set the Request Body**:
+            - Click on the "Body" tab.
+            - Choose `form-data`.
+            - Add the key-value pairs to add an item to the cart:
+                - `item_id`: `1`  # Replace with the desired item ID
+                - `quantity`: `1`  # Optional, defaults to 1 if not provided
+
+            5. **Send the Request**:
+            - Click "Send" to submit the request.
+            - If successful, you should get a 201 Created or 200 OK response with the updated cart data.
+            - If there's an error, check the response for details.
+
+            6. **Common Error Responses**:
+            - **400 Bad Request**: If `item_id` or `quantity` cannot be converted to an integer, or if the item's delegation state is not "Independent" or "Approved".
+            - **404 Not Found**: If the specified item does not exist.
+            """
+
+
+        try:
+            item_id = int(request.data.get('item_id'))
+        except (TypeError, ValueError):
+            return Response({"error": "Invalid item_id. It must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            quantity = int(request.data.get('quantity', 1))  # Default quantity to 1
+        except (TypeError, ValueError):
+            return Response({"error": "Invalid quantity. It must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Retrieve the authenticated user's cart
         cart, created = Cart.objects.get_or_create(user=request.user)
@@ -46,6 +69,10 @@ This API view is responsible for adding an item to the user's cart.
             item = Item.objects.get(id=item_id)  # Get the item based on the provided ID
         except Item.DoesNotExist:
             return Response({"error": "Item not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if the item's delegation_state allows adding to the cart 
+        if item.delegation_state not in ["Independent", "Approved"]:
+            return Response({"error": f"Item cannot be added to the cart due to its delegation state - {item.delegation_state}."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Create or update the cart item
         cart_item, created = CartItem.objects.get_or_create(cart=cart, item=item)
@@ -63,7 +90,7 @@ This API view is responsible for adding an item to the user's cart.
             status_code = status.HTTP_200_OK
 
         return Response({"message": message, "data": cart_serializer.data}, status=status_code)
- 
+
 
 class RemoveFromCartAPIView(APIView):
     """
@@ -75,26 +102,48 @@ class RemoveFromCartAPIView(APIView):
 
     def post(self, request):
         """
-        Remove an item from the user's cart.
+        ### Removing an Item from the Cart with Postman (Form Data)
 
-        Request Format:
-        ---------------
-        {
-            "item_id": <item_id>,
-            "quantity": <quantity>  # Optional, defaults to removing the entire item if not provided
-        }
+        To remove an item from the cart in Postman, follow these steps:
 
-        - "item_id": (integer) The ID of the item to be removed from the cart.
-        - "quantity": (integer) The quantity of the item to be removed from the cart. Optional. If not provided, defaults to removing the entire item.
+        1. **Set the HTTP Method to POST**:
+        - Select `POST` from the method dropdown.
 
-        Returns:
-        --------
-        Returns a JSON response indicating the success or failure of the operation along with the updated cart data if successful.
+        2. **Enter the Endpoint URL**:
+        - Use the endpoint for removing an item from the cart. Example: `http://localhost:8000/api/cart/remove/`.
+
+        3. **Set the Headers**:
+        - Add the `Authorization` header with your token:
+            - `Authorization`: `Token <your_token_here>`  # Replace with your actual token
+        - `Content-Type` will be set automatically for form data.
+
+        4. **Set the Request Body**:
+        - Click on the "Body" tab.
+        - Choose `form-data`.
+        - Add the following key-value pairs to remove an item from the cart:
+            - `item_id`: `1`  # ID of the item to remove
+            - `quantity`: `1`  # Optional, defaults to 1. If not provided, removes the entire item.
+
+        5. **Send the Request**:
+        - Click "Send" to submit the request.
+        - If successful, you should get a 200 OK response with the updated cart data and a success message.
+        - If the request fails, check the response for error details.
+
+        6. **Common Error Responses**:
+        - **400 Bad Request**: If `item_id` or `quantity` cannot be converted to an integer, or if `item_id` is not provided.
+        - **404 Not Found**: If the item doesn't exist in the user's cart.
         """
 
+
         # Get item_id and quantity from request data
-        item_id = request.data.get('item_id')
-        quantity = request.data.get('quantity')
+        try:
+            item_id = int(request.data.get('item_id'))
+        except (TypeError, ValueError):
+            return Response({"error": "Invalid item_id. It must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            quantity = int(request.data.get('quantity', 1))  # Default quantity to 1
+        except (TypeError, ValueError):
+            return Response({"error": "Invalid quantity. It must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if item_id is provided
         if not item_id:

@@ -35,7 +35,7 @@ class PurchaseItemAPIView(APIView):
             - Click on the "Body" tab.
             - Choose `form-data`.
             - Add the following key-value pairs for purchasing an item:
-                - `itemId`: `1`  # ID of the item you want to purchase
+                - `item_id`: `1`  # ID of the item you want to purchase
                 - `quantity`: `2`  # Number of units to purchase
 
             5. **Send the Request**:
@@ -44,7 +44,7 @@ class PurchaseItemAPIView(APIView):
             - If the request fails, check the response for error messages.
 
             6. **Common Error Responses**:
-            - **400 Bad Request**: If `itemId` or `quantity` cannot be converted to an integer, or if the item isn't purchasable due to delegation state.
+            - **400 Bad Request**: If `item_id` or `quantity` cannot be converted to an integer, or if the item isn't purchasable due to delegation state.
             - **404 Not Found**: If the specified item does not exist.
 
         """
@@ -52,10 +52,10 @@ class PurchaseItemAPIView(APIView):
 
         # Extract data from the request body
         try:
-            item_id = int(request.data.get('itemId'))
+            item_id = int(request.data.get('item_id'))
         except (TypeError, ValueError):
             # Return a 400 Bad Request response if the conversion fails
-            return Response({"error": "Invalid itemId. It must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Invalid item_id. It must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             quantity = int(request.data.get('quantity'))
@@ -215,7 +215,7 @@ class ItemSearchAPIView(generics.ListAPIView):
         return queryset  # Return the filtered queryset
 
 class ItemDetailView(APIView):
-    def get(self, request, itemId, format=None):
+    def get(self, request, item_id, format=None):
         """
             ### Retrieving Item Details with Postman
 
@@ -241,7 +241,7 @@ class ItemDetailView(APIView):
             """
 
         try:
-            item = Item.objects.get(pk=itemId)  # Retrieve the item by its ID
+            item = Item.objects.get(pk=item_id)  # Retrieve the item by its ID
             serializer = ItemSerializer(item)  # Serialize the item
             return Response(serializer.data, status=status.HTTP_200_OK)  # Return the serialized data
         except Item.DoesNotExist:

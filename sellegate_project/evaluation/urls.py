@@ -1,8 +1,7 @@
 from django.urls import path
-from . import views
+from .views import SearchItemsToEvaluateAPIView
 
 urlpatterns = [
     # Define URL patterns here
-    # Example:
-    # path('transactions/', views.transaction_list, name='transaction-list'),
+    path('items/', SearchItemsToEvaluateAPIView.as_view(), name='search-items-to-evaluate'),
 ]
