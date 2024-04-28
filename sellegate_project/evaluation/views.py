@@ -63,7 +63,80 @@ class SearchItemsToEvaluateAPIView(APIView):
             status=status.HTTP_200_OK,
         )
     
+class ApprovedEvaluationRequestAPIView(APIView):
+    """
+    API endpoint to retrieve the approved evaluation request for a given item_id.
+    If there are more than one approved request, return all with an error message.
+    """
+    permission_classes = [IsAuthenticated]
 
+    def get(self, request, item_id, format=None):
+        """
+        ### Fetching Approved Evaluation Requests by Item ID with Postman
+
+        To fetch approved evaluation requests for a specific item ID, follow these steps:
+
+        1. **Set HTTP Method to GET**:
+        - Select `GET` from the method dropdown in Postman.
+
+        2. **Enter the Endpoint URL**:
+        - Use the URL for fetching approved evaluation requests by `item_id`. Example: `http://localhost:8000/evaluation/approved-evaluation/1/`.
+        - Replace `1` with the desired item ID.
+
+        3. **Set the Headers**:
+        - Add the `Authorization` header with your authentication token:
+            - `Authorization`: `Token <your_token_here>`  # Replace `<your_token_here>` with your actual token
+
+        4. **Send the Request**:
+        - Click "Send" to submit the GET request.
+        - If successful, you'll receive a `200 OK` response with the approved evaluation request(s).
+
+        5. **Handling Errors and Feedback**:
+        - **404 Not Found**: If the `item_id` does not correspond to an existing item, you'll receive this status with an error message.
+        - **No Approved Requests**: If no approved evaluation requests are found for the given `item_id`, you'll receive a feedback message indicating this.
+        - **Multiple Approved Requests**: If there are more than one approved request for the same item, you'll get a warning message indicating a potential issue.
+        """
+
+        try:
+            # Check if the item exists
+            item = Item.objects.get(id=item_id)
+
+            # Get all approved evaluation requests for the given item_id
+            approved_requests = EvaluationRequest.objects.filter(item=item, status='approved')
+
+            if not approved_requests:
+                # If there are no approved requests, return a feedback message
+                return Response(
+                    {"message": "No approved evaluation requests found for this item."},
+                    status=status.HTTP_200_OK
+                )
+
+            # Serialize the approved requests
+            serializer = EvaluationRequestSerializer(approved_requests, many=True)
+
+            # Check if there's more than one approved request
+            if len(approved_requests) > 1:
+                # If more than one approved request, return them with an error message
+                return Response(
+                    {
+                        "error": "More than one approved evaluation request found for this item. Please investigate.",
+                        "approved_requests": serializer.data,
+                    },
+                    status=status.HTTP_200_OK
+                )
+
+            # If only one approved request, return it
+            return Response(
+                {"approved_request": serializer.data[0]},
+                status=status.HTTP_200_OK
+            )
+
+        except Item.DoesNotExist:
+            # If the item doesn't exist, return a 404 with appropriate feedback
+            return Response(
+                {"error": f"Item with ID {item_id} does not exist."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 # MUST RETURN EVALUATOR ID, FIX IT
 class SendItemAssessmentRequestAPIView(APIView):
