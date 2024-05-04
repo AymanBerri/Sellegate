@@ -3,8 +3,9 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone  # Import timezone for automatic timestamp
+# from authentication.models import User
 
-User = get_user_model()
+User = get_user_model() # instead imported user model
 
 class Item(models.Model):
     title = models.CharField(max_length=255)

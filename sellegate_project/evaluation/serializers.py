@@ -2,9 +2,19 @@
 
 from rest_framework import serializers
 from item_management.models import Item
-from .models import EvaluationRequest
+from .models import EvaluatorProfile, EvaluationRequest
+
 from authentication.models import User  # Import the User model
 
+
+class EvaluatorProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for EvaluatorProfile.
+    """
+    class Meta:
+        model = EvaluatorProfile
+        fields = ['bio']  # Currently, just the bio
+        
 
 class EvaluationRequestSerializer(serializers.ModelSerializer):
     # Expecting primary key for the item field, with validation

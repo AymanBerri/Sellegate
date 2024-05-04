@@ -2,15 +2,20 @@
 
 from rest_framework import serializers
 from .models import User
+from evaluation.serializers import EvaluatorProfileSerializer
 
 class UserSerializer(serializers.ModelSerializer):
     # Define a write-only password field
     password = serializers.CharField(write_only=True)
+    evaluatorProfile = EvaluatorProfileSerializer(source='evaluatorprofile', read_only=True)  # Nested serializer
+
 
     class Meta:
         model = User
         # Define the fields to include in the serialization
-        fields = ('id', 'username', 'email', 'password', 'is_evaluator', 'date_joined')
+        # fields = ('id', 'username', 'email', 'password', 'is_evaluator', 'date_joined')
+        fields = ('id', 'username', 'email', 'password', 'is_evaluator', 'evaluatorProfile', 'date_joined')
+
 
     def create(self, validated_data):
         # Extract and remove the password from the validated data

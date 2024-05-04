@@ -13,6 +13,7 @@ from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate, login, logout
 from .models import User
 from .serializers import UserSerializer
+from evaluation.models import EvaluatorProfile
 
 
 class UserDetailAPIView(APIView):
@@ -30,65 +31,106 @@ class UserDetailAPIView(APIView):
         return Response(user_serializer.data, status=status.HTTP_200_OK)
 
 class UserRegistrationAPIView(APIView):
+    """
+    API endpoint to create a new user (sign-up) and return the user with a token and evaluatorProfile.
+    """
     permission_classes = [AllowAny]  # Allow public access, no token required
 
     def post(self, request):
         """
-            ### Registering a User with Postman (Form Data)
+            ### User Sign-Up with Postman
 
-            To send a POST request to register a user in Postman:
+            To register a new user with the sign-up API, follow these steps:
 
-            1. **Set the HTTP Method to POST**:
-            - Select `POST` from the method dropdown.
+            1. **Set HTTP Method to POST**:
+            - In Postman, select `POST` from the method dropdown.
 
             2. **Enter the Endpoint URL**:
-            - Type the endpoint for user registration, like `http://localhost:8000/auth/register/`.
+            - Use the endpoint for user registration, typically: `http://localhost:8000/auth/register/`.
 
             3. **Set the Headers**:
-            - `Authorization` is not needed for registration.
-            - Postman will set `Content-Type` automatically for form data.
+            - You don't need any special headers for sign-up (no `Authorization` is required).
 
             4. **Set the Request Body**:
             - Click on the "Body" tab.
-            - Add key-value pairs for form data, as needed for registration. Example:
-                - `username`: `"new_username"`
-                - `email`: `"your_email@example.com"`
-                - `password`: `"your_password"`
+            - Choose `raw` and set the data format to `JSON`.
+            - Add the key-value pairs for user registration:
+                ```json
+                {
+                "username": "your_username",
+                "email": "your_email@example.com",
+                "password": "your_password"
+                }
+                ```
 
             5. **Send the Request**:
             - Click "Send" to submit the request.
-            - If successful, you'll receive a JSON response with user details and a token.
-            - If registration fails, an error message will indicate validation errors or other issues.
+            - If successful, you'll receive a `201 Created` response with the following data structure:
+                ```json
+                {
+                "id": 1,  # User ID
+                "username": "your_username",
+                "email": "your_email@example.com",
+                "is_evaluator": false,  # Default value
+                "token": "your_token_here",  # Use this for future authenticated requests
+                "evaluatorProfile": {
+                    "bio": ""  # Default empty string
+                }
+                }
+                ```
 
-            6. **Using the Token**:
+            6. **Handling Errors**:
+            - If the registration fails, you'll receive a `400 Bad Request` response with a consistent error message structure:
+                ```json
+                {
+                "status": "error",
+                "error": {
+                    "message": "Validation failed",
+                    "details": {
+                    "username": ["This field is required."],  # Example error details
+                    "email": ["This field is required."]
+                    }
+                }
+                }
+                ```
+
+            7. **Use the Token**:
             - If registration is successful, keep the token for future authenticated requests.
-            - Use it in the `Authorization` header as `Token <your_token>`.
+            - Include it in the `Authorization` header as `Token your_token_here`.
             """
-
-        # Deserialize request data
+        # Deserialize the request data
         serializer = UserSerializer(data=request.data)
-        
-        # Check if serializer data is valid
+
         if serializer.is_valid():
-            # Save user and generate token
+            # Save the new user
             user = serializer.save()
+
+            # Create a token for the new user
             token, _ = Token.objects.get_or_create(user=user)
 
-            # Construct response data
+            # Construct response data with the expected structure
             response_data = {
-                'userId': user.id,
+                'id': user.id,
                 'username': user.username,
                 'email': user.email,
+                'is_evaluator': False,
                 'token': token.key,
-                'is_evaluator': user.is_evaluator
+                'evaluatorProfile': {'bio': ''},  # Default bio
             }
 
-            # Return success response
             return Response(response_data, status=status.HTTP_201_CREATED)
-        else:
-            # Return error response with validation errors
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+        
+        # Consistent error structure for validation errors
+        error_response = {
+            'status': 'error',
+            'error': {
+                'message': 'Validation failed',
+                'details': serializer.errors
+            }
+        }
+
+        return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
+
 
 class UserLoginAPIView(APIView):
     permission_classes = [AllowAny]  # Allow public access, no token required
