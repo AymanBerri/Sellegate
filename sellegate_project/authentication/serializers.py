@@ -13,8 +13,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         # Define the fields to include in the serialization
-        # fields = ('id', 'username', 'email', 'password', 'is_evaluator', 'date_joined')
         fields = ('id', 'username', 'email', 'password', 'is_evaluator', 'evaluatorProfile', 'date_joined')
+        read_only_fields = ('id', 'date_joined')  # Immutable fields
 
 
     def create(self, validated_data):
@@ -30,3 +30,13 @@ class UserSerializer(serializers.ModelSerializer):
             user.save()
 
         return user
+    
+    def update(self, instance, validated_data):
+        print(validated_data)
+        # Handle password separately
+        if 'password' in validated_data:
+            # Hash the password before setting it
+            instance.set_password(validated_data.pop('password'))
+
+        # Perform default update for other fields
+        return super().update(instance, validated_data)
