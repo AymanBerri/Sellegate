@@ -1,3 +1,4 @@
+from django.http import Http404
 from django.shortcuts import render
 
 from rest_framework.permissions import IsAuthenticated
@@ -6,12 +7,187 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from django.db.models import Q
 from .models import Item, Purchase
-from .serializers import ItemSerializer, PurchaseSerializer
+from .serializers import ItemResponseSerializer, ItemCreateSerializer, PurchaseSerializer, ItemSerializer
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import AllowAny
 from django.core.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound
+from django.core.exceptions import ObjectDoesNotExist
 
 
+class GetAllItemsAPIView(generics.ListAPIView):
+    """
+    API endpoint to get all items with specific information.
+    """
+    permission_classes = [AllowAny]  # Public endpoint
+    serializer_class = ItemResponseSerializer  # Use the custom serializer
+    queryset = Item.objects.all()  # Get all items
+
+    def list(self, request, *args, **kwargs):
+        # Get the list of items
+        response = super().list(request, *args, **kwargs)
+
+        # If no items are found, return a custom error response
+        if len(response.data) == 0:
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "No items found",
+                        "code": status.HTTP_404_NOT_FOUND,
+                        "details": {},  # No additional details
+                    },
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Return the regular response if items exist
+        return response
+    
+
+class GetItemsToExploreAPIView(generics.ListAPIView):
+    """
+    API endpoint to get all items not owned by the current logged-in user.
+    """
+    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
+    serializer_class = ItemResponseSerializer
+
+    def get_queryset(self):
+        # Get the authenticated user
+        current_user = self.request.user
+        
+        # Retrieve all items excluding those owned by the current user
+        queryset = Item.objects.exclude(seller=current_user)
+
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        # Get the original queryset
+        response = super().list(request, *args, **kwargs)
+
+        # If the resulting list is empty, return a custom error response
+        if len(response.data) == 0:
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "No items available to explore",
+                        "code": status.HTTP_404_NOT_FOUND,
+                        "details": {},  # No additional details
+                    },
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Otherwise, return the response with data
+        return response  
+    
+
+class GetItemAPIView(generics.RetrieveAPIView):
+    """
+    API endpoint to get a specific item by ID.
+    """
+    permission_classes = [AllowAny]  # Public endpoint
+    serializer_class = ItemResponseSerializer  # Serializer for the expected data structure
+
+    def get_object(self):
+        item_id = self.kwargs.get('id')  # Get the item ID from URL parameters
+
+        try:
+            # Attempt to retrieve the item by ID
+            item = Item.objects.get(id=item_id)
+            return item
+        except Item.DoesNotExist:
+            # Raise a NotFound exception if the item doesn't exist
+            raise NotFound(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": f"Item with ID {item_id} not found",
+                        "code": status.HTTP_404_NOT_FOUND,
+                        "details": {},  # Additional information (if needed)
+                    },
+                }
+            )
+
+
+class UserProductsAPIView(generics.ListAPIView):
+    """
+    API endpoint to return all items owned by the currently logged-in user.
+    """
+    permission_classes = [IsAuthenticated]  # Restrict access to authenticated users only
+    serializer_class = ItemResponseSerializer  # Use the response serializer
+
+    def get_queryset(self):
+        """
+        Get all items owned by the current user.
+        """
+        user = self.request.user  # Get the current user
+        queryset = Item.objects.filter(seller=user)  # Fetch all items belonging to the current user
+        
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        """
+        Override the list method to check if there are any items to return.
+        """
+        queryset = self.get_queryset()
+
+        # If the queryset is empty, return a custom 404 response
+        if not queryset.exists():
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "No items found for the current user.",
+                        "code": status.HTTP_404_NOT_FOUND,
+                        "details": {
+                            "seller": ["This user has no items."],
+                        },
+                    },
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # If the queryset is not empty, continue with the default listing
+        return super().list(request, *args, **kwargs)
+    
+
+class PostItemAPIView(APIView):
+    """
+    API endpoint to create a new item.
+    """
+    permission_classes = [IsAuthenticated]  # Restrict access to authenticated users
+
+    def post(self, request):
+        """
+        Handle POST request to create a new item.
+        """
+        serializer = ItemCreateSerializer(data=request.data, context={'request': request})
+
+        if serializer.is_valid():
+            serializer.create(serializer.validated_data)  # Create the item
+            return Response(
+                {
+                    "status": "success",
+                    "message": "Item created successfully."
+                },
+                status=status.HTTP_201_CREATED
+            )
+
+        # If validation fails, return error response in the specified format
+        return Response(
+            {
+                "status": "error",
+                "error": {
+                    "message": "Validation failed",
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "details": serializer.errors  # Return detailed validation errors
+                },
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+# OLD APIS \/\/\/\/\/\/\/\/\/\/\/
 
 class PurchaseItemAPIView(APIView):
     permission_classes = [IsAuthenticated]  # Ensure user is authenticated
@@ -137,73 +313,6 @@ class ItemListCreateAPIView(APIView):
         else:
             # If serializer is not valid, return errors with status 400 (Bad Request)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class ItemSearchAPIView(generics.ListAPIView):
-    permission_classes = [AllowAny]  # Allow public access, no token required
-
-
-    serializer_class = ItemSerializer
-    queryset = Item.objects.all()
-    filter_backends = [SearchFilter, OrderingFilter]  # Add filter backends for search and ordering
-
-    search_fields = ['title', 'description', 'seller__username']  # Specify fields for search
-    ordering_fields = ['price']  # Specify fields for ordering
-
-    def get_queryset(self):
-        """
-            ### Searching Items with Postman
-
-            To send a GET request to search for items in Postman:
-
-            1. **Set the HTTP Method to GET**:
-            - Select `GET` from the method dropdown.
-
-            2. **Enter the Endpoint URL**:
-            - Use the URL for the item search endpoint, like `http://localhost:8000/items/search/`.
-
-            3. **Set the Query Parameters**:
-            - Click on the "Params" tab.
-            - Add key-value pairs for the filters. Examples:
-                - `query`: `"search_term"`  # Search by title or description
-                - `category`: `"desired_category"`  # Filter by category (Not implemented yet)
-                - `minPrice`: `"minimum_price"`  # Filter by minimum price
-                - `maxPrice`: `"maximum_price"`  # Filter by maximum price
-
-            4. **Send the Request**:
-            - Click "Send" to submit the request.
-            - If successful, you'll receive a JSON response with the filtered items.
-            - You can use the "Search Fields" to filter by title or description, and "Ordering Fields" to order by price.
-
-            5. **Handle Response**:
-            - If successful, examine the returned JSON data to understand the structure of the response.
-            - If the request fails, check the error message for details on what might have gone wrong.
-            """
-
-        queryset = super().get_queryset()  # Get the queryset from the parent class
-
-        # Apply filters based on query parameters:
-
-        # Filter by search query
-        query = self.request.query_params.get('query')
-        if query:
-            queryset = queryset.filter(Q(title__icontains=query) | Q(description__icontains=query))
-
-        # Filter by category
-        category = self.request.query_params.get('category')
-        if category:
-            queryset = queryset.filter(category=category)
-
-        # Filter by minimum price
-        min_price = self.request.query_params.get('minPrice')
-        if min_price:
-            queryset = queryset.filter(price__gte=min_price)
-
-        # Filter by maximum price
-        max_price = self.request.query_params.get('maxPrice')
-        if max_price:
-            queryset = queryset.filter(price__lte=max_price)
-
-        return queryset  # Return the filtered queryset
 
 class ItemDetailView(APIView):
     def get(self, request, item_id, format=None):
@@ -448,3 +557,71 @@ class DeleteItemAPIView(APIView):
         except PermissionDenied:
             # Return a 403 if the user does not have permission
             return Response({"error": "You do not have permission to delete this item."}, status=status.HTTP_403_FORBIDDEN)
+        
+class ItemSearchAPIView(generics.ListAPIView):
+    # REPLACED BY GetAllItemsAPIView
+    permission_classes = [AllowAny]  # Allow public access, no token required
+
+
+    serializer_class = ItemSerializer
+    queryset = Item.objects.all()
+    filter_backends = [SearchFilter, OrderingFilter]  # Add filter backends for search and ordering
+
+    search_fields = ['title', 'description', 'seller__username']  # Specify fields for search
+    ordering_fields = ['price']  # Specify fields for ordering
+
+    def get_queryset(self):
+        """
+            ### Searching Items with Postman
+
+            To send a GET request to search for items in Postman:
+
+            1. **Set the HTTP Method to GET**:
+            - Select `GET` from the method dropdown.
+
+            2. **Enter the Endpoint URL**:
+            - Use the URL for the item search endpoint, like `http://localhost:8000/items/search/`.
+
+            3. **Set the Query Parameters**:
+            - Click on the "Params" tab.
+            - Add key-value pairs for the filters. Examples:
+                - `query`: `"search_term"`  # Search by title or description
+                - `category`: `"desired_category"`  # Filter by category (Not implemented yet)
+                - `minPrice`: `"minimum_price"`  # Filter by minimum price
+                - `maxPrice`: `"maximum_price"`  # Filter by maximum price
+
+            4. **Send the Request**:
+            - Click "Send" to submit the request.
+            - If successful, you'll receive a JSON response with the filtered items.
+            - You can use the "Search Fields" to filter by title or description, and "Ordering Fields" to order by price.
+
+            5. **Handle Response**:
+            - If successful, examine the returned JSON data to understand the structure of the response.
+            - If the request fails, check the error message for details on what might have gone wrong.
+            """
+
+        queryset = super().get_queryset()  # Get the queryset from the parent class
+
+        # Apply filters based on query parameters:
+
+        # Filter by search query
+        query = self.request.query_params.get('query')
+        if query:
+            queryset = queryset.filter(Q(title__icontains=query) | Q(description__icontains=query))
+
+        # Filter by category
+        category = self.request.query_params.get('category')
+        if category:
+            queryset = queryset.filter(category=category)
+
+        # Filter by minimum price
+        min_price = self.request.query_params.get('minPrice')
+        if min_price:
+            queryset = queryset.filter(price__gte=min_price)
+
+        # Filter by maximum price
+        max_price = self.request.query_params.get('maxPrice')
+        if max_price:
+            queryset = queryset.filter(price__lte=max_price)
+
+        return queryset  # Return the filtered queryset

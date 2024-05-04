@@ -101,11 +101,11 @@ const useAPI = () => {
 		//     description: string;
 		//     price: number;
 		//     sellerId: string;
-		//     sellerName: string; // I dont care how u store it, return it with the response, or guide me what should i call to reach this shape
+		//     -sellerName: string; // I dont care how u store it, return it with the response, or guide me what should i call to reach this shape
 		//     createdAt: string; // for all createdAt, i just care about the date. Use any format.. ex: 2024/4/3
 		//     isSold: boolean;
 		//     delegationState: "Independent" OR "Pending" OR "Approved" OR "Rejected";
-		//     evaluatorId: string OR null; // if its evaluted it should contain the evalutor id, otherwise it should be null
+		//     -evaluatorId: string OR null; // if its evaluted it should contain the evalutor id, otherwise it should be null
 		// }
 	};
 

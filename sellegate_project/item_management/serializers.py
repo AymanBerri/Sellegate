@@ -7,6 +7,76 @@ from authentication.models import User
 from django.core.exceptions import ValidationError
 
 
+# ItemResponseSerializer is what Frontend wants
+# ItemSerializer is what i originally built
+
+class ItemResponseSerializer(serializers.ModelSerializer):
+    """
+    Serializer for providing item data in the expected format.
+    """
+    # Seller's name from the User model
+    seller_name = serializers.CharField(source='seller.username', read_only=True)  # Map seller's name
+    
+    # Date formatting for created_at
+    created_at = serializers.SerializerMethodField()  # Custom method to format date
+    
+    def get_created_at(self, obj):
+        return obj.created_at.strftime("%Y/%m/%d")  # Return the date in the required format
+
+    # Evaluator ID (nullable)
+    evaluator_id = serializers.CharField(source='evaluation.evaluator.id', allow_null=True, read_only=True)
+    
+    class Meta:
+        model = Item
+        fields = [
+            'id',
+            'title',  # Assuming 'name' should map to 'title'
+            'thumbnail_url',
+            'description',
+            'price',
+            'seller_id',  # Original seller ID
+            'seller_name',  # Human-readable seller name
+            'created_at',
+            'is_sold',
+            'is_visible',
+            'delegation_state',
+            'evaluator_id',  # Can be null if not evaluated
+        ]
+
+class ItemCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating a new Item.
+    """
+    # If 'imgUrl' is not sent or is explicitly null, set it to None
+    imgUrl = serializers.ImageField(required=False, allow_null=True, default=None)
+
+    class Meta:
+        model = Item
+        fields = ['title', 'thumbnail_url', 'description', 'price', 'delegation_state']
+        extra_kwargs = {
+            'thumbnail_url': {'required': False},  # Not mandatory for item creation
+            'title': {'required': True},  # 'title' is mandatory and corresponds to 'name'
+            'description': {'required': True},
+            'price': {'required': True},
+            'delegation_state': {'required': True},
+        }
+
+    def create(self, validated_data):
+        """
+        Create a new Item with the given validated data.
+        """
+        # The 'seller' is extracted from the request user, not from the request data
+        seller = self.context['request'].user
+        validated_data['seller'] = seller  # Assign the seller to the current user
+        validated_data['thumbnail_url'] = None  # Always set to null (as per requirements)
+
+        # Create the new item
+        new_item = Item.objects.create(**validated_data)
+        return new_item
+
+
+
+
 class ItemSerializer(serializers.ModelSerializer):
     """
     Serializer for Item model.
