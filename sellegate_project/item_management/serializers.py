@@ -45,34 +45,32 @@ class ItemResponseSerializer(serializers.ModelSerializer):
 
 class ItemCreateSerializer(serializers.ModelSerializer):
     """
-    Serializer for creating a new Item.
+    Serializer for creating a new item.
     """
-    # If 'imgUrl' is not sent or is explicitly null, set it to None
-    imgUrl = serializers.ImageField(required=False, allow_null=True, default=None)
+    # The client might send an image, but default it to `null` for now
+    thumbnail_url = serializers.URLField(required=False, allow_null=True)  # Optional, defaulting to `null`
 
     class Meta:
         model = Item
-        fields = ['title', 'thumbnail_url', 'description', 'price', 'delegation_state']
-        extra_kwargs = {
-            'thumbnail_url': {'required': False},  # Not mandatory for item creation
-            'title': {'required': True},  # 'title' is mandatory and corresponds to 'name'
-            'description': {'required': True},
-            'price': {'required': True},
-            'delegation_state': {'required': True},
-        }
-
+        fields = [
+            'title',  # Assumed mapping from 'name'
+            'description',
+            'price',
+            'thumbnail_url',  # Mapping from 'imgUrl'
+            'is_visible',  # User can choose
+            'delegation_state',  # Ensure it's one of the predefined choices
+        ]
+    
     def create(self, validated_data):
         """
-        Create a new Item with the given validated data.
+        Create a new item with validated data.
         """
-        # The 'seller' is extracted from the request user, not from the request data
-        seller = self.context['request'].user
-        validated_data['seller'] = seller  # Assign the seller to the current user
-        validated_data['thumbnail_url'] = None  # Always set to null (as per requirements)
+        user = self.context['request'].user  # Current logged-in user
+        validated_data['seller'] = user  # Set the seller as the current user
+        validated_data['is_sold'] = False  # Default value
 
-        # Create the new item
-        new_item = Item.objects.create(**validated_data)
-        return new_item
+        # Return a new item instance
+        return Item.objects.create(**validated_data)
 
 
 

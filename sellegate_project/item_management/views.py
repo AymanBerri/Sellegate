@@ -1,6 +1,7 @@
 from django.http import Http404
 from django.shortcuts import render
 
+from rest_framework.generics import CreateAPIView  # API view for creating items
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework import generics, status
@@ -155,38 +156,48 @@ class UserProductsAPIView(generics.ListAPIView):
 
 class PostItemAPIView(APIView):
     """
-    API endpoint to create a new item.
+    API endpoint to create a new item and return its details upon success.
     """
-    permission_classes = [IsAuthenticated]  # Restrict access to authenticated users
-
+    permission_classes = [IsAuthenticated]  # Ensure only authenticated users can post
+    
     def post(self, request):
         """
-        Handle POST request to create a new item.
+        Handle POST requests to create a new item.
         """
+        # Create a serializer with the incoming data
         serializer = ItemCreateSerializer(data=request.data, context={'request': request})
 
         if serializer.is_valid():
-            serializer.create(serializer.validated_data)  # Create the item
+            # Save the new item
+            new_item = serializer.save()  # Save the created item instance
+
+            # Use the ItemResponseSerializer to format the created item details
+            item_response_serializer = ItemResponseSerializer(new_item)
+
+            # Return success response with item details
             return Response(
                 {
-                    "status": "success",
-                    "message": "Item created successfully."
+                    "message": "Item created successfully.",
+                    "item": item_response_serializer.data  # Return the serialized item details
                 },
                 status=status.HTTP_201_CREATED
             )
-
-        # If validation fails, return error response in the specified format
+        
+        # If invalid, return error response in the specified format
         return Response(
             {
                 "status": "error",
                 "error": {
                     "message": "Validation failed",
                     "code": status.HTTP_400_BAD_REQUEST,
-                    "details": serializer.errors  # Return detailed validation errors
+                    "details": serializer.errors,
                 },
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+
+
 # OLD APIS \/\/\/\/\/\/\/\/\/\/\/
 
 class PurchaseItemAPIView(APIView):
