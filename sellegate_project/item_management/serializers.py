@@ -123,7 +123,7 @@ class ItemSerializer(serializers.ModelSerializer):
 
 
 
-class ItemSerializer2(serializers.ModelSerializer):
+class _ItemSerializer(serializers.ModelSerializer):
     """
     Serializer for Item model.
     """

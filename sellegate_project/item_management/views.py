@@ -197,6 +197,145 @@ class PostItemAPIView(APIView):
         )
 
 
+class UpdateItemAPIView(APIView):
+    """
+    API endpoint to update an item. Ensures the current user owns the item.
+    """
+    permission_classes = [IsAuthenticated]  # Only authenticated users can update items
+    
+    def patch(self, request, item_id):
+        """
+        Handle PATCH requests to update item details.
+        """
+
+        # Ensure some data is provided in the request
+        if not request.data:
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "No data provided to update",
+                        "code": status.HTTP_400_BAD_REQUEST,
+                    },
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        # Find the item by ID
+        try:
+            item = Item.objects.get(id=item_id)  # Fetch the item by ID
+        except Item.DoesNotExist:
+            # Return a 404 error if the item doesn't exist
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "Item not found",
+                        "code": status.HTTP_404_NOT_FOUND,
+                    },
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Check if the current user is the owner (by seller ID)
+        if item.seller != request.user:
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "Unauthorized to update this item",
+                        "code": status.HTTP_403_FORBIDDEN,
+                    },
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Apply partial updates with the ItemSerializer
+        serializer = ItemSerializer(item, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()  # Save valid changes
+
+            # Return a success response with the updated item details
+            return Response(
+                {
+                    "message": "Item updated successfully",
+                    "item": ItemSerializer(item).data,
+                },
+                status=status.HTTP_200_OK,
+            )
+        
+        # If invalid, return a consistent error response
+        return Response(
+            {
+                "status": "error",
+                "error": {
+                    "message": "Validation failed",
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "details": serializer.errors,  # Include validation error details
+                },
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    
+class DeleteItemAPIView(APIView):
+    """
+    API endpoint to delete an item based on its ID.
+    """
+    permission_classes = [IsAuthenticated]  # Only authenticated users can delete items
+    
+    def delete(self, request, item_id):
+        """
+        Handle DELETE requests to remove an item.
+        """
+        try:
+            # Attempt to retrieve the item by ID
+            item = Item.objects.get(id=item_id)
+        except Item.DoesNotExist:
+            # Return a 404 response if the item doesn't exist
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": f"Item with ID {item_id} not found.",
+                        "code": status.HTTP_404_NOT_FOUND,
+                        "details": {
+                            "item_id": ["This item does not exist."],
+                        },
+                    },
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Check if the current user is the owner of the item
+        if item.seller != request.user:
+            # If the current user is not the owner, return a 403 Forbidden response
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "You do not have permission to delete this item.",
+                        "code": status.HTTP_403_FORBIDDEN,
+                        "details": {
+                            "user": ["You are not the owner of this item."],
+                        },
+                    },
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # If the user is the owner, delete the item
+        item.delete()
+
+        # Return a response with a confirmation message
+        return Response(
+            {
+                "message": f"Item with ID {item_id} was deleted successfully."
+            },
+            status=status.HTTP_200_OK  # Use 200 to indicate success with a response message
+        )
+
 
 # OLD APIS \/\/\/\/\/\/\/\/\/\/\/
 
@@ -456,7 +595,8 @@ class UserSoldItemsAPIView(APIView):
                 status=status.HTTP_200_OK
             )
         
-class UpdateItemAPIView(APIView):
+class _UpdateItemAPIView(APIView):
+    # REPLACED BY "UpdateItemAPIView" above
     """
     API endpoint to update an item by ID.
     The user must be authenticated and the owner/seller of the item.
@@ -515,7 +655,7 @@ class UpdateItemAPIView(APIView):
             # Return a 403 if the user does not have permission
             return Response({"error": "You do not have permission to update this item."}, status=status.HTTP_403_FORBIDDEN)
 
-class DeleteItemAPIView(APIView):
+class _DeleteItemAPIView(APIView):
     """
     API endpoint to delete an item by ID.
     The user must be authenticated and be the owner or seller of the item.

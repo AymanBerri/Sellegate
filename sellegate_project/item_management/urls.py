@@ -19,9 +19,11 @@ urlpatterns = [
     # API endpoint to create a new item.
     path('post-item/', PostItemAPIView.as_view(), name='post-item'),  # URL for posting a new item
 
+    # API endpoint to update an item.
+    path('update-item/<int:item_id>/', UpdateItemAPIView.as_view(), name='update-item'),  # Endpoint for updating an item
 
-
-
+    # API endpoint to delete an item based on its ID.
+    path('delete-item/<int:item_id>/', DeleteItemAPIView.as_view(), name='delete-item'),
 
     # OLD \/\/\/\/\/\/
 
@@ -42,7 +44,7 @@ urlpatterns = [
     path('my-sold-items/', UserSoldItemsAPIView.as_view(), name='user-sold-items'),
 
     # URL for updating an item by its ID
-    path('update-item/<int:item_id>/', UpdateItemAPIView.as_view(), name='update-item'),
+    # path('update-item/<int:item_id>/', UpdateItemAPIView.as_view(), name='update-item'), 
 
     # URL for deleting an item by its ID
     path('delete-item/<int:item_id>/', DeleteItemAPIView.as_view(), name='delete-item'),
