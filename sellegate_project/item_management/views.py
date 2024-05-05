@@ -1,5 +1,5 @@
 from django.http import Http404
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 
 from rest_framework.generics import CreateAPIView  # API view for creating items
 from rest_framework.permissions import IsAuthenticated
@@ -7,8 +7,10 @@ from rest_framework.views import APIView
 from rest_framework import generics, status
 from rest_framework.response import Response
 from django.db.models import Q
-from .models import Item, Purchase
-from .serializers import PurchaseSerializer, ItemSerializer
+
+from .models import Item, Purchase, Payment
+from .serializers import PurchaseSerializer, ItemSerializer, PaymentSerializer
+
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import AllowAny
 from django.core.exceptions import PermissionDenied
@@ -278,7 +280,7 @@ class UpdateItemAPIView(APIView):
             status=status.HTTP_400_BAD_REQUEST,
         )
     
-    
+
 class DeleteItemAPIView(APIView):
     """
     API endpoint to delete an item based on its ID.
@@ -336,6 +338,83 @@ class DeleteItemAPIView(APIView):
             status=status.HTTP_200_OK  # Use 200 to indicate success with a response message
         )
 
+
+class BuyItemAPIView(APIView):
+    """
+    API endpoint for buying an item.
+    """
+    permission_classes = [IsAuthenticated]  # Only authenticated users can buy items
+
+    def post(self, request, item_id):
+        """
+        Handles the POST request to buy an item.
+        """
+        # Find the item by its ID
+        item = get_object_or_404(Item, id=item_id)
+
+        # Validate if the item can be bought
+        if item.is_sold:
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "Item is already sold.",
+                        "code": status.HTTP_400_BAD_REQUEST,
+                    },
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        # Validate if the item was visible
+        if not item.is_visible:
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "Item is not visible. Revise code.",
+                        "code": status.HTTP_400_BAD_REQUEST,
+                    },
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Seller cant but his own item
+        if item.seller == request.user:
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "You cannot buy your own item.",
+                        "code": status.HTTP_400_BAD_REQUEST,
+                    },
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # If valid, mark the item as sold
+        item.is_sold = True
+        item.is_visible = False # not necessary
+        item.save()  # Save the updated item status
+
+        # Create a new payment record
+        payment = Payment.objects.create(
+            item=item,
+            buyer=request.user,
+            total_price=item.price,
+        )
+
+        # Use the PaymentSerializer to serialize the payment details
+        payment_serializer = PaymentSerializer(payment)
+
+        # Return a success response indicating the purchase was completed
+        return Response(
+            {
+                "message": "Item bought successfully.",
+                "payment": payment_serializer.data,  # Return the payment details
+            },
+            status=status.HTTP_201_CREATED,
+        )
+    
 
 # OLD APIS \/\/\/\/\/\/\/\/\/\/\/
 

@@ -1,7 +1,7 @@
 # item_management/serializers.py
 
 from rest_framework import serializers
-from .models import Item, Purchase, Bid
+from .models import Item, Payment, Purchase, Bid
 from authentication.serializers import UserSerializer
 from authentication.models import User
 from django.core.exceptions import ValidationError
@@ -38,7 +38,7 @@ class ItemSerializer(serializers.ModelSerializer):
             'delegation_state',
             'evaluator_id',  # Can be null if not evaluated
         ]
-        read_only_fields = ['id', 'seller_id', 'created_at', 'is_sold', 'seller_name']
+        read_only_fields = ['id', 'seller_id', 'created_at', 'seller_name']
 
     def get_created_at(self, obj):
         """
@@ -56,73 +56,28 @@ class ItemSerializer(serializers.ModelSerializer):
 
         return Item.objects.create(**validated_data)
 
+class PaymentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Payment model.
+    """
+    created_at = serializers.SerializerMethodField()
+
+    def get_created_at(self, obj):
+        return obj.created_at.strftime("%Y/%m/%d")
+
+    class Meta:
+        model = Payment
+        fields = [
+            'id',
+            'item_id',  # The related item
+            'buyer_id',  # The buyer
+            'total_price',  # The total price (read-only to avoid manual manipulation)
+            'created_at',
+        ]
+        read_only_fields = ['total_price']  # Prevent manual editing
 
 
-# class ItemResponseSerializer(serializers.ModelSerializer):
-#     """
-#     Serializer for providing item data in the expected format.
-#     """
-#     # Seller's name from the User model
-#     seller_name = serializers.CharField(source='seller.username', read_only=True)  # Map seller's name
-    
-#     # Date formatting for created_at
-#     created_at = serializers.SerializerMethodField()  # Custom method to format date
-    
-#     def get_created_at(self, obj):
-#         return obj.created_at.strftime("%Y/%m/%d")  # Return the date in the required format
-
-#     # Evaluator ID (nullable)
-#     evaluator_id = serializers.CharField(source='evaluation.evaluator.id', allow_null=True, read_only=True)
-    
-#     class Meta:
-#         model = Item
-#         fields = [
-#             'id',
-#             'title',  # Assuming 'name' should map to 'title'
-#             'thumbnail_url',
-#             'description',
-#             'price',
-#             'seller_id',  # Original seller ID
-#             'seller_name',  # Human-readable seller name
-#             'created_at',
-#             'is_sold',
-#             'is_visible',
-#             'delegation_state',
-#             'evaluator_id',  # Can be null if not evaluated
-#         ]
-
-# class ItemCreateSerializer(serializers.ModelSerializer):
-#     """
-#     Serializer for creating a new item.
-#     """
-#     # The client might send an image, but default it to `null` for now
-#     thumbnail_url = serializers.URLField(required=False, allow_null=True)  # Optional, defaulting to `null`
-
-#     class Meta:
-#         model = Item
-#         fields = [
-#             'title',  # Assumed mapping from 'name'
-#             'description',
-#             'price',
-#             'thumbnail_url',  # Mapping from 'imgUrl'
-#             'is_visible',  # User can choose
-#             'delegation_state',  # Ensure it's one of the predefined choices
-#         ]
-    
-#     def create(self, validated_data):
-#         """
-#         Create a new item with validated data.
-#         """
-#         user = self.context['request'].user  # Current logged-in user
-#         validated_data['seller'] = user  # Set the seller as the current user
-#         validated_data['is_sold'] = False  # Default value
-
-#         # Return a new item instance
-#         return Item.objects.create(**validated_data)
-
-
-
-
+# OLD \/\/\/\/\/\/\/\/\/
 class _ItemSerializer(serializers.ModelSerializer):
     """
     Serializer for Item model.

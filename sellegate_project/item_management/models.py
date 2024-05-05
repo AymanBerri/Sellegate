@@ -32,6 +32,31 @@ class Item(models.Model):
         return self.title
     # Other fields for item details like condition, category, etc.
 
+class Payment(models.Model):
+    """
+    Represents a record of a purchase or payment.
+    """
+    item = models.ForeignKey(Item, on_delete=models.CASCADE)  # The item being purchased
+    buyer = models.ForeignKey(User, on_delete=models.CASCADE)  # The buyer
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)  # The total price of the purchase
+    created_at = models.DateTimeField(default=timezone.now)  # The timestamp of the purchase
+
+    def __str__(self):
+        return f"Payment for {self.item.title} by {self.buyer.username}"
+    
+    def save(self, *args, **kwargs):
+        """
+        Override the save method to set total_price to the related item's price.
+        """
+        if not self.total_price:  # If total_price is not set
+            self.total_price = self.item.price  # Assign the price from the item
+        super().save(*args, **kwargs)  # Call the parent save method
+
+
+
+
+
+# OLD \/\/\/\/\/\/\/\/
 class Purchase(models.Model):
     """
     Model to represent purchases made by users.
