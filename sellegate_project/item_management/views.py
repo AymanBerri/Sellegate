@@ -8,7 +8,7 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from django.db.models import Q
 from .models import Item, Purchase
-from .serializers import ItemResponseSerializer, ItemCreateSerializer, PurchaseSerializer, ItemSerializer
+from .serializers import PurchaseSerializer, ItemSerializer
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import AllowAny
 from django.core.exceptions import PermissionDenied
@@ -21,7 +21,7 @@ class GetAllItemsAPIView(generics.ListAPIView):
     API endpoint to get all items with specific information.
     """
     permission_classes = [AllowAny]  # Public endpoint
-    serializer_class = ItemResponseSerializer  # Use the custom serializer
+    serializer_class = ItemSerializer  # Use the custom serializer
     queryset = Item.objects.all()  # Get all items
 
     def list(self, request, *args, **kwargs):
@@ -51,7 +51,7 @@ class GetItemsToExploreAPIView(generics.ListAPIView):
     API endpoint to get all items not owned by the current logged-in user.
     """
     permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
-    serializer_class = ItemResponseSerializer
+    serializer_class = ItemSerializer
 
     def get_queryset(self):
         # Get the authenticated user
@@ -89,7 +89,7 @@ class GetItemAPIView(generics.RetrieveAPIView):
     API endpoint to get a specific item by ID.
     """
     permission_classes = [AllowAny]  # Public endpoint
-    serializer_class = ItemResponseSerializer  # Serializer for the expected data structure
+    serializer_class = ItemSerializer  # Serializer for the expected data structure
 
     def get_object(self):
         item_id = self.kwargs.get('id')  # Get the item ID from URL parameters
@@ -117,7 +117,7 @@ class UserProductsAPIView(generics.ListAPIView):
     API endpoint to return all items owned by the currently logged-in user.
     """
     permission_classes = [IsAuthenticated]  # Restrict access to authenticated users only
-    serializer_class = ItemResponseSerializer  # Use the response serializer
+    serializer_class = ItemSerializer  # Use the response serializer
 
     def get_queryset(self):
         """
@@ -165,14 +165,14 @@ class PostItemAPIView(APIView):
         Handle POST requests to create a new item.
         """
         # Create a serializer with the incoming data
-        serializer = ItemCreateSerializer(data=request.data, context={'request': request})
+        serializer = ItemSerializer(data=request.data, context={'request': request})
 
         if serializer.is_valid():
             # Save the new item
             new_item = serializer.save()  # Save the created item instance
 
             # Use the ItemResponseSerializer to format the created item details
-            item_response_serializer = ItemResponseSerializer(new_item)
+            item_response_serializer = ItemSerializer(new_item)
 
             # Return success response with item details
             return Response(
