@@ -4,14 +4,261 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.core.exceptions import ObjectDoesNotExist
+from django.shortcuts import get_object_or_404
 
 from item_management.models import Item
 from item_management.serializers import ItemSerializer
 
-from .models import EvaluationRequest
-from .serializers import EvaluationRequestSerializer
+from .models import EvaluationRequest, EvaluationRequest
+from .serializers import EvaluationRequestSerializer, EvaluationRequestSerializer
 
 # Create your views here.
+
+class SendEvaluationRequestAPIView(APIView):
+    """
+    API endpoint for sending an evaluation request.
+    """
+    permission_classes = [IsAuthenticated]  # Only authenticated users can send requests
+    
+    def post(self, request):
+        # Ensure the user is an evaluator
+        if not request.user.is_evaluator:
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "User is not authorized to send evaluation requests.",
+                        "code": status.HTTP_403_FORBIDDEN,
+                    },
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = EvaluationRequestSerializer(data=request.data, context={'request': request})
+
+        if serializer.is_valid():
+            # Create a new evaluation request
+            new_evaluation = serializer.save()
+
+            return Response(
+                {
+                    "message": "evaluation request created successfully.",
+                    "evaluation": serializer.data,  # Return serialized evaluation details
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        
+        # Return error response if validation fails
+        return Response(
+            {
+                "status": "error",
+                "error": {
+                    "message": "Validation failed.",
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "details": serializer.errors,
+                },
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class GetMyEvaluationsAPIView(APIView):
+    """
+    API endpoint to retrieve evaluation requests created by the current evaluator.
+    """
+    def get(self, request):
+        # Check if the current user is an evaluator
+        if not request.user.is_evaluator:
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "Only evaluators can access evaluation requests.",
+                        "code": status.HTTP_403_FORBIDDEN
+                    }
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Retrieve evaluation requests created by the current evaluator
+        evaluations = EvaluationRequest.objects.filter(evaluator=request.user)
+
+        # Serialize the evaluation requests
+        serializer = EvaluationRequestSerializer(evaluations, many=True)
+
+        # Return the serialized data
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class GetEvaluationRequestsOnMyProductAPIView(APIView):
+    """
+    API endpoint to retrieve all evaluation requests for a specific item owned by the current user.
+    """
+    permission_classes = [IsAuthenticated]  # Ensure only authenticated users can access
+    
+    def get(self, request):
+        """
+        Handles GET requests to get all evaluation requests for a specific item owned by the current user.
+        """
+        # Extract itemId from the request data
+        item_id = request.data.get("item_id")
+
+        # Check if the itemId is provided
+        if not item_id:
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "item_id is required.",
+                        "code": status.HTTP_400_BAD_REQUEST,
+                    },
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Retrieve the item and check if it belongs to the current logged-in user
+        try:
+            item = Item.objects.get(id=item_id)
+            if item.seller != request.user:
+                return Response(
+                    {
+                        "status": "error",
+                        "error": {
+                            "message": "Item not owned by the current user.",
+                            "code": status.HTTP_403_FORBIDDEN,
+                        },
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        except Item.DoesNotExist:
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "Item not found.",
+                        "code": status.HTTP_404_NOT_FOUND,
+                    },
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Get all evaluation requests for this item
+        evaluation_requests = EvaluationRequest.objects.filter(item=item)
+
+        # Use the evaluationRequestSerializer to serialize the evaluation requests
+        evaluation_requests_data = EvaluationRequestSerializer(evaluation_requests, many=True).data
+
+        # Return the serialized evaluation requests
+        return Response(
+            {
+                "evaluation_requests": evaluation_requests_data,  # List of evaluation requests
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class RejectEvaluationAPIView(APIView):
+    """
+    API endpoint to reject an evaluation request.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, evaluation_id):
+        # Try to get the evaluation request, catching 404 if not found
+        try:
+            evaluation = EvaluationRequest.objects.get(id=evaluation_id)
+        except ObjectDoesNotExist:
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "Assessment request not found.",
+                        "code": 404,
+                    },
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Ensure the current user owns the item associated with the evaluation
+        item = evaluation.item
+        if item.seller != request.user:
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "You do not own this item. Only the item owner can reject evaluations.",
+                        "code": status.HTTP_403_FORBIDDEN,
+                    },
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Update the state to 'Rejected'
+        evaluation.state = 'Rejected'
+        evaluation.save()  # Save the change
+
+        return Response(
+            {
+                "message": "evaluation request rejected successfully."
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class AcceptEvaluationAPIView(APIView):
+    """
+    API endpoint to accept an evaluation request and update the relevant item information.
+    """
+    permission_classes = [IsAuthenticated]  # Only authenticated users can accept evaluations
+
+    def patch(self, request, evaluation_id):
+        # Try to get the evaluation request, catching 404 if not found
+        try:
+            evaluation = EvaluationRequest.objects.get(id=evaluation_id)
+        except ObjectDoesNotExist:
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "Assessment request not found.",
+                        "code": 404,
+                    },
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Ensure the current user owns the item associated with the evaluation
+        item = evaluation.item
+        if item.seller != request.user:
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "You do not own this item. Only the item owner can accept evaluations.",
+                        "code": 403,
+                    },
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Update the relevant item information based on the evaluation request
+        item.price = evaluation.price  # Update the price with the evaluation's estimated price
+        item.delegation_state = 'Approved'  # Change the item's delegation state to "Approved"
+        # Update additional information if needed (like item name, description, etc.)
+        item.save()  # Save the updated item
+
+        # Update the state of the evaluation request to 'Approved'
+        evaluation.state = 'Approved'
+        evaluation.save()  # Save the updated evaluation state
+
+        return Response(
+            {
+                "message": "Evaluation request approved, item information updated.",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+# OLD \/\/\/\/\/\/\/\/\/\/
 
 class SearchItemsToEvaluateAPIView(APIView):
     def get(self, request):
@@ -139,57 +386,60 @@ class ApprovedEvaluationRequestAPIView(APIView):
             )
 
 # MUST RETURN EVALUATOR ID, FIX IT
-class SendItemAssessmentRequestAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+# class SendItemevaluationRequestAPIView(APIView):
+#     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        # Ensure the authenticated user is an evaluator
-        if not request.user.is_evaluator:
-            return Response(
-                {"error": "Only evaluators can send assessment requests."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+#     def post(self, request):
+#         # Ensure the authenticated user is an evaluator
+#         if not request.user.is_evaluator:
+#             return Response(
+#                 {"error": "Only evaluators can send evaluation requests."},
+#                 status=status.HTTP_403_FORBIDDEN,
+#             )
 
-        item_id = request.data.get("item_id")
-        message = request.data.get("message", "")
+#         item_id = request.data.get("item_id")
+#         message = request.data.get("message", "")
 
-        if not item_id:
-            return Response(
-                {"error": "item_id is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+#         if not item_id:
+#             return Response(
+#                 {"error": "item_id is required."},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
 
-        try:
-            item = Item.objects.get(id=item_id)
-        except ObjectDoesNotExist:
-            return Response(
-                {"error": "Item not found."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+#         try:
+#             item = Item.objects.get(id=item_id)
+#         except ObjectDoesNotExist:
+#             return Response(
+#                 {"error": "Item not found."},
+#                 status=status.HTTP_404_NOT_FOUND,
+#             )
 
-        # Provide necessary data to the serializer
-        data = {
-            "item_id": item_id,  # Item primary key
-            "message": message,  # Optional message
-        }
+#         # Provide necessary data to the serializer
+#         data = {
+#             "item_id": item_id,  # Item primary key
+#             "message": message,  # Optional message
+#         }
 
-        # Use the serializer to validate and create the evaluation request
-        serializer = EvaluationRequestSerializer(data=data)
+#         # Use the serializer to validate and create the evaluation request
+#         serializer = EvaluationRequestSerializer(data=data)
 
-        if serializer.is_valid():
-            # Save with the authenticated user as the evaluator
-            evaluation_request = serializer.save(
-                item=item,
-                evaluator=request.user,  # Manually set the evaluator to the authenticated user
-                status="requested",  # Set the status to 'requested'
-            )
+#         if serializer.is_valid():
+#             # Save with the authenticated user as the evaluator
+#             evaluation_request = serializer.save(
+#                 item=item,
+#                 evaluator=request.user,  # Manually set the evaluator to the authenticated user
+#                 status="requested",  # Set the status to 'requested'
+#             )
 
-            # Serialize the response to ensure the correct data is returned
-            response_serializer = EvaluationRequestSerializer(evaluation_request)
+#             # Serialize the response to ensure the correct data is returned
+#             response_serializer = EvaluationRequestSerializer(evaluation_request)
 
-            return Response(
-                response_serializer.data,
-                status=status.HTTP_201_CREATED,
-            )
+#             return Response(
+#                 response_serializer.data,
+#                 status=status.HTTP_201_CREATED,
+#             )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+

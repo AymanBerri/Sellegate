@@ -28,35 +28,15 @@ class ItemAdmin(admin.ModelAdmin):
     )
 
 
-
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
     """
     Admin configuration for the Payment model.
     """
-    list_display = (
-        'id',  # Unique ID
-        'item',  # The item purchased
-        'buyer',  # Buyer of the item
-        'total_price',  # Total price of the purchase
-        'created_at',  # When the payment was made
-    )
-
-    list_filter = ('buyer', 'item')  # Filters for admin list view
-    search_fields = ('item__title', 'buyer__username')  # Searchable fields
-    ordering = ('-created_at',)  # Default order (most recent first)
-
-    fieldsets = (
-        (None, {
-            'fields': (
-                'item',  # The item being purchased
-                'buyer',  # The buyer
-                'created_at',  # Display-only field
-            ),
-        }),
-    )
-
-    readonly_fields = ('created_at', 'total_price')  # Make total_price read-only
+    list_display = ['id', 'item', 'buyer', 'total_price', 'created_at']  # Fields to display
+    list_filter = ['created_at']  # Filter by creation date
+    search_fields = ['item__title', 'buyer__username']  # Search by item title or buyer username
+    readonly_fields = ['created_at', 'total_price']  # Fields that are read-only
 
 
 # @admin.register(Purchase)

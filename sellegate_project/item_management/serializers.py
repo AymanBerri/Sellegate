@@ -60,21 +60,35 @@ class PaymentSerializer(serializers.ModelSerializer):
     """
     Serializer for the Payment model.
     """
-    created_at = serializers.SerializerMethodField()
+    # Use SerializerMethodField to get the related item ID and item name
+    item_id = serializers.SerializerMethodField()  # Get item ID
+    item_name = serializers.SerializerMethodField()  # Get item title/name
+    
+    # Method to retrieve related item ID
+    def get_item_id(self, obj):
+        return obj.item.id
+    
+    # Method to retrieve related item name
+    def get_item_name(self, obj):
+        return obj.item.title
+    
+    # Date formatting for created_at
+    created_at = serializers.SerializerMethodField()  # Formatted creation date
 
     def get_created_at(self, obj):
-        return obj.created_at.strftime("%Y/%m/%d")
-
+        return obj.created_at.strftime("%Y/%m/%d")  # Custom date format
+    
     class Meta:
         model = Payment
         fields = [
-            'id',
-            'item_id',  # The related item
-            'buyer_id',  # The buyer
-            'total_price',  # The total price (read-only to avoid manual manipulation)
-            'created_at',
+            'id',  # Payment ID
+            'item_id',  # ID of the item
+            'buyer_id',  # ID of the buyer (current user)
+            'item_name',  # Title or name of the item
+            'total_price',  # Price of the item
+            'created_at',  # Formatted creation date
         ]
-        read_only_fields = ['total_price']  # Prevent manual editing
+        read_only_fields = ['total_price', 'id', 'buyer_id']  # Prevent changes to read-only fields
 
 
 # OLD \/\/\/\/\/\/\/\/\/

@@ -414,7 +414,21 @@ class BuyItemAPIView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class GetUserPaymentsAPIView(generics.ListAPIView):
+    """
+    API endpoint to get all payments for the current logged-in user.
+    """
+    permission_classes = [IsAuthenticated]  # Ensure only authenticated users can access this endpoint
+    serializer_class = PaymentSerializer  # Use the updated serializer
     
+    def get_queryset(self):
+        """
+        Get all payments for the current user.
+        """
+        user = self.request.user  # Get the current logged-in user
+        return Payment.objects.filter(buyer=user)  # Return all payments for this user
 
 # OLD APIS \/\/\/\/\/\/\/\/\/\/\/
 

@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import ItemSearchAPIView, ItemDetailView, ItemListCreateAPIView, PurchaseItemAPIView, UserPurchasesAPIView, UserSoldItemsAPIView, DeleteItemAPIView, UpdateItemAPIView
 from .views import GetAllItemsAPIView, GetItemsToExploreAPIView, GetItemAPIView, UserProductsAPIView, PostItemAPIView, BuyItemAPIView
+from .views import GetUserPaymentsAPIView
 
 urlpatterns = [
     # Define URL patterns here
@@ -27,6 +28,10 @@ urlpatterns = [
 
     # API endpoint for buying an item.
     path('buy/<int:item_id>/', BuyItemAPIView.as_view(), name='buy-item'),  # Endpoint to buy an item
+
+    # API endpoint to get all payments for the current logged-in user.
+    path('my-payments/', GetUserPaymentsAPIView.as_view(), name='get-user-payments'),  # URL for fetching user payments
+
 
 
     # OLD \/\/\/\/\/\/
