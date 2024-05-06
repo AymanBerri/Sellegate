@@ -396,14 +396,10 @@ class UserLoginAPIView(APIView):
         
 class UserLogoutAPIView(APIView):
     authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
 
     def post(self, request):
-        '''
-        Logout a user using powershell console:
-            Invoke-RestMethod -Method Post -Uri "http://localhost:8000/auth/logout/" -Headers @{ "Authorization" = "Token <your_token_here>" }
-            Invoke-RestMethod -Method Post -Uri "http://localhost:8000/auth/logout/" -Headers @{ "Authorization" = "Token 71c2fa175cf0b2e8f73ed7ba20ee65d2870c9e5c" }
-        '''
-
 
         try:
             # Get the user's email

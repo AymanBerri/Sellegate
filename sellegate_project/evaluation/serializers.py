@@ -56,7 +56,6 @@ class EvaluationRequestSerializer(serializers.ModelSerializer):
 
 
 
-# OLD \/\/\///\/\/\///\/\/\/\/\/\/
 class EvaluatorProfileSerializer(serializers.ModelSerializer):
     """
     Serializer for EvaluatorProfile.
@@ -65,6 +64,7 @@ class EvaluatorProfileSerializer(serializers.ModelSerializer):
         model = EvaluatorProfile
         fields = ['bio']  # Currently, just the bio
         
+# OLD \/\/\///\/\/\///\/\/\/\/\/\/
 
 class _EvaluationRequestSerializer(serializers.ModelSerializer):
     # Expecting primary key for the item field, with validation
