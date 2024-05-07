@@ -213,6 +213,8 @@ class UserRegistrationAPIView(APIView):
 
 class UserLoginAPIView(APIView):
     permission_classes = [AllowAny]  # Allow public access, no token required
+    authentication_classes = []
+
 
     def post(self, request):
         # Extract email and password from request data

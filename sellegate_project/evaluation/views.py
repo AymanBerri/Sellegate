@@ -142,8 +142,18 @@ class GetEvaluationRequestsOnMyProductAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # Get all evaluation requests for this item
-        evaluation_requests = EvaluationRequest.objects.filter(item=item)
+        # Get all pending evaluation requests for this item
+        evaluation_requests = EvaluationRequest.objects.filter(item=item, state='Pending')
+
+        if not evaluation_requests.exists():
+            # Return a message if there are no pending evaluation requests
+            return Response(
+                {
+                    "status": "info",
+                    "message": "No pending evaluation requests for this item.",
+                },
+                status=status.HTTP_200_OK,
+            )
 
         # Use the evaluationRequestSerializer to serialize the evaluation requests
         evaluation_requests_data = EvaluationRequestSerializer(evaluation_requests, many=True).data
