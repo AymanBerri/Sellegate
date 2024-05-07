@@ -32,7 +32,6 @@ class UserSerializer(serializers.ModelSerializer):
         return user
     
     def update(self, instance, validated_data):
-        print(validated_data)
         # Handle password separately
         if 'password' in validated_data:
             # Hash the password before setting it

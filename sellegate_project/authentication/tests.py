@@ -33,11 +33,21 @@ class AuthenticationTests(APITestCase):
             'email': 'newuser@example.com',
             'password': 'NewUserPass123'
         }
-        url = reverse('user-registration')
+        url = reverse('user-registration')  # Adjust with your actual endpoint name
         response = self.client.post(url, data, format='json')
 
+        # Ensure the registration was successful
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertIn('token', response.data)
+
+        # Ensure that the response data contains the expected user info
+        self.assertEqual(response.data['username'], 'newuser')
+        self.assertEqual(response.data['email'], 'newuser@example.com')
+
+        # Verify that a token is not present in the response data
+        self.assertNotIn('token', response.data)
+
+        # Verify that the new user is actually created in the database
+        self.assertTrue(User.objects.filter(username='newuser').exists())
 
     def test_user_registration_invalid_data(self):
         # Test registration with invalid data (e.g., missing password)
@@ -74,7 +84,40 @@ class AuthenticationTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_user_logout(self):
+    def test_user_update(self):
+        # Authenticate using the token
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+        # Endpoint for updating user information
+        url = reverse('update-user')
+
+        
+        # Data to update the user
+        update_data = {
+            "username": "updateduser",
+            "email": "updated@example.com"
+        }
+
+        # Send a PATCH request to update user information
+        response = self.client.patch(url, update_data, format='json')
+
+        # Check the response status code
+        self.assertEqual(response.status_code, status.HTTP_200_OK, f"Failed to update user information: {response.data}")
+
+        # Check if the 'user' key is in the response
+        if 'user' not in response.data:
+            self.fail("The response did not contain expected user data")
+
+        # Extract the user data from the response
+        user_data = response.data['user']
+
+        # Validate the updated username
+        self.assertEqual(user_data['username'], 'updateduser', "Username was not updated")
+        
+        # Validate the updated email
+        self.assertEqual(user_data['email'], 'updated@example.com', "Email was not updated")
+
+    # def test_user_logout(self):
         # Set the token in the client's credentials
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
 
@@ -89,6 +132,7 @@ class AuthenticationTests(APITestCase):
         # Test access without token
         self.client.credentials()  # Clear the credentials
         url = reverse('user-logout')
+
         response = self.client.post(url)
 
         # Assert that the unauthorized access is handled
@@ -110,34 +154,6 @@ class AuthenticationTests(APITestCase):
         # Assert that the response contains the expected user information (e.g., email)
         self.assertIn('email', response.data)
 
-    def test_user_update(self):
-        # Authenticate using the token
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
 
-        # Endpoint for updating user information
-        url = reverse('update-user')
 
-        # Data to update the user
-        update_data = {
-            'username': 'updateduser',
-            'email': 'updated@example.com'
-        }
-
-        # Send a PATCH request to update user information
-        response = self.client.patch(url, update_data, format='json')
-
-        # Check the response status code
-        self.assertEqual(response.status_code, status.HTTP_200_OK, f"Failed to update user information: {response.data}")
-
-        # Check if the 'user' key is in the response
-        if 'user' not in response.data:
-            self.fail("The response did not contain expected user data")
-
-        # Extract the user data from the response
-        user_data = response.data['user']
-
-        # Validate the updated username
-        self.assertEqual(user_data['username'], 'updateduser', "Username was not updated")
-        
-        # Validate the updated email
-        self.assertEqual(user_data['email'], 'updated@example.com', "Email was not updated")
+# 

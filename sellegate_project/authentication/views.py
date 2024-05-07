@@ -179,60 +179,12 @@ class UpdateUserAPIView(APIView):
 
 class UserRegistrationAPIView(APIView):
     """
-    API endpoint to create a new user (sign-up) and return the user with a token and evaluatorProfile.
+    API endpoint to create a new user (sign-up).
     """
     permission_classes = [AllowAny]  # Allow public access, no token required
+    authentication_classes = []  # No authentication check, even if token is sent
 
     def post(self, request):
-        """
-        ### User Registration with Postman
-
-        To create a new user with the registration endpoint, follow these steps:
-
-        1. **Set HTTP Method to POST**:
-        - In Postman, select `POST` from the method dropdown.
-
-        2. **Enter the Endpoint URL**:
-        - Use the URL for user registration. Example: `http://localhost:8000/auth/register/`.
-
-        3. **Set the Headers**:
-        - You don't need an `Authorization` header for registration.
-        - Postman should automatically set the `Content-Type` for form data.
-
-        4. **Set the Request Body**:
-        - Click on the "Body" tab.
-        - Choose `raw` and select `JSON` as the data format.
-        - Add key-value pairs to create a new user. Example:
-            ```json
-            {
-            "username": "your_username",
-            "email": "your_email@example.com",
-            "password": "your_password"
-            }
-            ```
-
-        5. **Send the Request**:
-        - Click "Send" to submit the request.
-        - If successful, you'll receive a response with user details and a token.
-        - If the request fails, you will receive a response with error messages indicating validation issues or other errors.
-
-        6. **Handling Errors**:
-        - **400 Bad Request**: If validation fails, you'll receive this response with details about the validation errors.
-        - **Validation Error Structure**: The error response structure is consistent and includes:
-            ```json
-            {
-            "status": "error",
-            "error": {
-                "message": "Validation failed",
-                "details": {
-                "username": ["This field is required."],  // Example error
-                "email": ["This field is required."],     // Example error
-                // Other validation errors
-                }
-            }
-            }
-            ```
-        """
         # Use the serializer to validate and create the user
         serializer = UserSerializer(data=request.data)
 
@@ -240,15 +192,11 @@ class UserRegistrationAPIView(APIView):
             # Save the user and ensure an EvaluatorProfile is created by the signal
             user = serializer.save()
 
-            # Create a token for the new user
-            token, _ = Token.objects.get_or_create(user=user)
-
             # Serialize the user to get the structured response
             user_serializer = UserSerializer(user)
 
-            # Construct the response data including the token
+            # Construct the response data without token
             response_data = user_serializer.data
-            response_data["token"] = token.key  # Add the token to the response
 
             return Response(response_data, status=status.HTTP_201_CREATED)
 
@@ -316,84 +264,7 @@ class UserLoginAPIView(APIView):
                 },
                 status=status.HTTP_401_UNAUTHORIZED
             )
-
-    # def post(self, request):
-    #     """
-    #         ### Logging in with Postman (Form Data)
-
-    #         To send a POST request for login using form data in Postman:
-
-    #         1. **Set the HTTP Method to POST**:
-    #         - Select `POST` from the method dropdown.
-
-    #         2. **Enter the Endpoint URL**:
-    #         - Type the URL for the login endpoint, like `http://localhost:8000/auth/login/`.
-
-    #         3. **Set the Headers**:
-    #         - No `Authorization` header is needed for login.
-    #         - Postman will set `Content-Type` automatically for form data.
-
-    #         4. **Set the Request Body**:
-    #         - Click on the "Body" tab.
-    #         - Add the key-value pairs for form data:
-    #             - `email`: `"your_email@example.com"`
-    #             - `password`: `"your_password"`
-
-    #         5. **Send the Request**:
-    #         - Click "Send" to submit the request.
-    #         - If successful, you'll receive a JSON response with a token and user info.
-    #         - If login fails, an error message will indicate why.
-
-    #         6. **Using the Token**:
-    #         - If login is successful, keep the token for future authenticated requests.
-    #         - Use it in the `Authorization` header as `Token <your_token>`.
-    #     """
-
-
-    #     # Extract email and password from request data
-    #     email = request.data.get('email')
-    #     password = request.data.get('password')
-
-    #     print(f"Received email: {email}, password: {password}")
-
-    #     # Fetch username based on email
-    #     try:
-    #         user = User.objects.get(email=email)
-    #         username = user.username
-    #     except User.DoesNotExist:
-    #         # Return error response if user with the provided email does not exist
-    #         print("User with the provided email does not exist")
-    #         return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-
-    #     # Authenticate user using fetched username and password
-    #     user = authenticate(username=username, password=password)
-
-    #     if user is not None:
-    #         print(f"Authentication successful: {user.username} ({user.email})")
-            
-    #         # Delete previous tokens for the user, to enfore one token practice
-    #         # Token.objects.filter(user=user).delete()
-
-    #         # Generate new token
-    #         token, _ = Token.objects.get_or_create(user=user)
-
-    #         # Construct response data
-    #         response_data = {
-    #             'userId': user.id,
-    #             'username': user.username,
-    #             'email': user.email,
-    #             'is_evaluator': user.is_evaluator,
-    #             'token': token.key
-    #         }
-
-    #         # Return success response
-    #         return Response(response_data, status=status.HTTP_200_OK)
-    #     else:
-    #         print("Authentication failed")
-
-    #         # Return error response for authentication failure
-    #         return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-        
+    
 class UserLogoutAPIView(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
