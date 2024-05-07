@@ -59,8 +59,8 @@ class GetItemsToExploreAPIView(generics.ListAPIView):
         # Get the authenticated user
         current_user = self.request.user
         
-        # Retrieve all items excluding those owned by the current user
-        queryset = Item.objects.exclude(seller=current_user)
+        # Retrieve all items excluding those owned by the current user, and not sold
+        queryset = Item.objects.exclude(seller=current_user).filter(is_sold=False)
 
         return queryset
 
