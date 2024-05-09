@@ -12,8 +12,12 @@ class Item(models.Model):
     description = models.TextField(blank=False)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     thumbnail_url = models.URLField(null=True, blank=True)  
-    seller = models.ForeignKey(User, on_delete=models.CASCADE)
-
+    seller = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="seller_items"  # Unique related_name for seller
+    )
+    evaluator = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="evaluator_items"  # Unique related_name for evaluator
+    )
 
     # Define choices for delegation state
     DELEGATION_STATE_CHOICES = (

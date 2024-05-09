@@ -5,7 +5,7 @@ from .models import Item, Purchase, Bid, Payment
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'price', 'seller', 'delegation_state', 'created_at', 'is_sold', 'is_visible')
+    list_display = ('id', 'title', 'price', 'seller', 'evaluator', 'delegation_state', 'created_at', 'is_sold', 'is_visible')
     list_filter = ('delegation_state', 'seller', 'is_sold', 'is_visible')
     search_fields = ('title', 'description', 'seller__username')
     readonly_fields = ('id', 'created_at')  # `created_at` is read-only, set by the system
@@ -19,6 +19,7 @@ class ItemAdmin(admin.ModelAdmin):
                 'price',
                 'thumbnail_url',
                 'seller',
+                'evaluator',
                 'delegation_state',
                 'created_at',  # Include creation timestamp
                 'is_sold',  # Indicate if the item is sold
@@ -39,19 +40,7 @@ class PaymentAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at', 'total_price']  # Fields that are read-only
 
 
-# @admin.register(Purchase)
-# class PurchaseAdmin(admin.ModelAdmin):
-#     list_display = ('id', 'item', 'quantity', 'total_price', 'purchase_date')
-#     list_filter = ('purchase_date',)
-#     search_fields = ('item__title', 'item__description', 'item__seller__username')
-#     readonly_fields = ('id', 'total_price', 'purchase_date')
-#     fieldsets = (
-#         ('Purchase Details', {
-#             # 'fields': ('buyer', 'item', 'quantity')
-#             'fields': ('buyer', 'item')
 
-#         }),
-#     )
     
 
 

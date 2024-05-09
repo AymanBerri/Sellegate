@@ -12,33 +12,34 @@ from django.core.exceptions import ValidationError
 
 class ItemSerializer(serializers.ModelSerializer):
     """
-    Serializer for handling both creating and providing item data in the expected format.
+    Serializer for handling item data in the expected format.
     """
-    # For response formatting
-    seller_name = serializers.CharField(source='seller.username', read_only=True)  # Map seller's name
-    created_at = serializers.SerializerMethodField()  # Custom method to format date
-    evaluator_id = serializers.CharField(source='evaluation.evaluator.id', allow_null=True, read_only=True)
+    # Additional serializer fields for more human-readable information
+    seller_name = serializers.CharField(source='seller.username', read_only=True)  # Read-only seller username
+    evaluator_name = serializers.CharField(source='evaluator.username', read_only=True, allow_null=True)  # Read-only evaluator username
+    created_at = serializers.SerializerMethodField()  # Custom field for formatted creation date
     
-    # Optional thumbnail_url (defaulting to `null` if not provided)
+    # Optional thumbnail URL and other fields
     thumbnail_url = serializers.URLField(required=False, allow_null=True)
 
     class Meta:
         model = Item
         fields = [
-            'id',
-            'title',  # Name mapping
-            'thumbnail_url',  # Optional image URL
-            'description',
-            'price',
-            'seller_id',  # Original seller ID
-            'seller_name',  # Human-readable seller name
-            'created_at',
-            'is_sold',
-            'is_visible',
-            'delegation_state',
-            'evaluator_id',  # Can be null if not evaluated
+            'id',                # Unique ID for the item
+            'title',             # Item title
+            'description',       # Item description
+            'price',             # Item price
+            'thumbnail_url',     # Optional image URL
+            'seller_id',         # Original seller ID
+            'seller_name',       # Human-readable seller name
+            'evaluator_id',      # Original evaluator ID
+            'evaluator_name',    # Human-readable evaluator name
+            'created_at', # Formatted creation date
+            'is_sold',           # Indicates if the item is sold
+            'is_visible',        # Indicates if the item is visible
+            'delegation_state',  # Delegation state (e.g., Approved, Pending, Rejected, etc.)
         ]
-        read_only_fields = ['id', 'seller_id', 'created_at', 'seller_name']
+        read_only_fields = ['id', 'seller_id', 'created_at', 'seller_name', 'evaluator_name']
 
     def get_created_at(self, obj):
         """

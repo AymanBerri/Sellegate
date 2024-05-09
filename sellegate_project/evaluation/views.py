@@ -214,10 +214,11 @@ class RejectEvaluationAPIView(APIView):
             status=status.HTTP_200_OK,
         )
 
-
+# change null evaluator_id in item
 class AcceptEvaluationAPIView(APIView):
     """
-    API endpoint to accept an evaluation request and update the relevant item information.
+    API endpoint to accept an evaluation request, update the relevant item information,
+    reject other pending evaluation requests, and assign the evaluator to the item.
     """
     permission_classes = [IsAuthenticated]  # Only authenticated users can accept evaluations
 
@@ -231,7 +232,7 @@ class AcceptEvaluationAPIView(APIView):
                     "status": "error",
                     "error": {
                         "message": "Evaluation request not found.",
-                        "code": 404,
+                        "code": status.HTTP_404_NOT_FOUND,
                     },
                 },
                 status=status.HTTP_404_NOT_FOUND,
@@ -245,7 +246,7 @@ class AcceptEvaluationAPIView(APIView):
                     "status": "error",
                     "error": {
                         "message": "You do not own this item. Only the item owner can accept evaluations.",
-                        "code": 403,
+                        "code": status.HTTP_403_FORBIDDEN,
                     },
                 },
                 status=status.HTTP_403_FORBIDDEN,
@@ -264,18 +265,26 @@ class AcceptEvaluationAPIView(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        # If no approved evaluations, update the relevant item information based on the current evaluation
-        item.price = evaluation.price  # Update the item's price with the evaluation's estimated price
-        item.delegation_state = 'Approved'  # Change the item's delegation state to "Approved"
-        item.save()  # Save the updated item
+        # Update the item based on the approved evaluation request
+        item.price = evaluation.price  # Update the price with the approved evaluation's price
+        item.delegation_state = 'Approved'  # Set delegation state to 'Approved'
+        item.evaluator = evaluation.evaluator  # Assign the evaluator to the item
+        item.save()  # Save the item
 
-        # Update the state of the current evaluation request to 'Approved'
+        # Reject other pending evaluation requests for the same item
+        other_pending_requests = EvaluationRequest.objects.filter(item=item, state='Pending')
+        for pending_request in other_pending_requests:
+            if pending_request != evaluation:
+                pending_request.state = 'Rejected'
+                pending_request.save()
+
+        # Approve the evaluation request and save
         evaluation.state = 'Approved'
         evaluation.save()
 
         return Response(
             {
-                "message": "Evaluation request approved, item information updated.",
+                "message": "Evaluation request approved, item information updated, and other pending requests rejected.",
             },
             status=status.HTTP_200_OK,
         )
