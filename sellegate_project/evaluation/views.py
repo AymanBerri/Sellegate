@@ -230,7 +230,7 @@ class AcceptEvaluationAPIView(APIView):
                 {
                     "status": "error",
                     "error": {
-                        "message": "Assessment request not found.",
+                        "message": "Evaluation request not found.",
                         "code": 404,
                     },
                 },
@@ -251,15 +251,27 @@ class AcceptEvaluationAPIView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Update the relevant item information based on the evaluation request
-        item.price = evaluation.price  # Update the price with the evaluation's estimated price
+        # Check if there is already an approved evaluation request for this item
+        if EvaluationRequest.objects.filter(item=item, state='Approved').exists():
+            return Response(
+                {
+                    "status": "error",
+                    "error": {
+                        "message": "An evaluation has already been approved for this item.",
+                        "code": status.HTTP_409_CONFLICT,
+                    },
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        # If no approved evaluations, update the relevant item information based on the current evaluation
+        item.price = evaluation.price  # Update the item's price with the evaluation's estimated price
         item.delegation_state = 'Approved'  # Change the item's delegation state to "Approved"
-        # Update additional information if needed (like item name, description, etc.)
         item.save()  # Save the updated item
 
-        # Update the state of the evaluation request to 'Approved'
+        # Update the state of the current evaluation request to 'Approved'
         evaluation.state = 'Approved'
-        evaluation.save()  # Save the updated evaluation state
+        evaluation.save()
 
         return Response(
             {
