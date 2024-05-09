@@ -33,22 +33,36 @@ class AuthenticationTests(APITestCase):
             'email': 'newuser@example.com',
             'password': 'NewUserPass123'
         }
-        url = reverse('user-registration')  # Adjust with your actual endpoint name
+        url = reverse('user-registration')  # Ensure this is the correct URL for registration
         response = self.client.post(url, data, format='json')
 
         # Ensure the registration was successful
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            response.status_code, 
+            status.HTTP_201_CREATED, 
+            "Registration should return HTTP 201 Created."
+        )
 
-        # Ensure that the response data contains the expected user info
+        # Ensure that the response data contains the expected user information
         self.assertEqual(response.data['username'], 'newuser')
         self.assertEqual(response.data['email'], 'newuser@example.com')
 
-        # Verify that a token is not present in the response data
-        self.assertNotIn('token', response.data)
+        # Verify that a token is present in the response data
+        self.assertIn('token', response.data, "Response should contain a token.")
 
         # Verify that the new user is actually created in the database
-        self.assertTrue(User.objects.filter(username='newuser').exists())
+        self.assertTrue(
+            User.objects.filter(username='newuser').exists(),
+            "New user should be created in the database."
+        )
 
+        # Check if a valid token was generated
+        token_key = response.data['token']  # Get the token from the response
+        self.assertTrue(
+            Token.objects.filter(key=token_key).exists(),
+            "A valid token should be generated upon registration."
+        )
+        
     def test_user_registration_invalid_data(self):
         # Test registration with invalid data (e.g., missing password)
         data = {
