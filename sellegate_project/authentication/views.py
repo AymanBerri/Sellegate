@@ -179,28 +179,32 @@ class UpdateUserAPIView(APIView):
 
 class UserRegistrationAPIView(APIView):
     """
-    API endpoint to create a new user (sign-up).
+    API endpoint to create a new user (sign-up) and return a token.
     """
-    permission_classes = [AllowAny]  # Allow public access, no token required
-    authentication_classes = []  # No authentication check, even if token is sent
+    permission_classes = [AllowAny]  # Allow public access for registration
+    authentication_classes = []  # No authentication required
 
     def post(self, request):
         # Use the serializer to validate and create the user
         serializer = UserSerializer(data=request.data)
 
         if serializer.is_valid():
-            # Save the user and ensure an EvaluatorProfile is created by the signal
+            # Save the user and ensure any necessary signals (like profile creation) are triggered
             user = serializer.save()
+
+            # Create a token for the new user
+            token, created = Token.objects.get_or_create(user=user)
 
             # Serialize the user to get the structured response
             user_serializer = UserSerializer(user)
 
-            # Construct the response data without token
+            # Construct the response data including the token
             response_data = user_serializer.data
+            response_data['token'] = token.key  # Include the generated token
 
             return Response(response_data, status=status.HTTP_201_CREATED)
 
-        # Handle validation errors with a consistent error structure
+        # Handle validation errors
         error_response = {
             'status': 'error',
             'error': {
