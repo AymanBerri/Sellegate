@@ -100,8 +100,8 @@ class GetEvaluationRequestsOnMyProductAPIView(APIView):
         """
         Handles GET requests to get all evaluation requests for a specific item owned by the current user.
         """
-        # Extract itemId from the request data
-        item_id = request.data.get("item_id")
+        # Extract itemId from the query parameters
+        item_id = request.query_params.get("item_id")
 
         # Check if the itemId is provided
         if not item_id:
