@@ -39,7 +39,10 @@ class EvaluatorProfile(models.Model):
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE)  # Ensure the profile is deleted if the user is deleted
     bio = models.TextField(default="", blank=True)  # Default bio to empty string
-    
+
+    def __str__(self):
+        # Return a string representation using the username of the associated User
+        return f"{self.user.username}"
 # OLD \/\/\/\/\/\/\/\/\
 class OLDEvaluationRequest(models.Model):
     # Define status choices for the evaluation request

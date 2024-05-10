@@ -30,6 +30,37 @@ from evaluation.serializers import EvaluatorProfileSerializer
     #   }
     # }
 
+class TokenStatusAPIView(APIView):
+    """
+    API endpoint to return user details if the token is valid.
+    """
+    permission_classes = [IsAuthenticated]  # Require authentication to access the endpoint
+
+    def get(self, request):
+        # Get the current user from the request
+        user = request.user
+        
+        # Find the token for the current user
+        token = Token.objects.filter(user=user).first()
+
+        if token:
+            # If the token exists, return user details and the token
+            user_serializer = UserSerializer(user)
+            response_data = user_serializer.data
+            response_data['token'] = token.key
+
+            return Response(
+                {
+                    "message": "Token is valid.",
+                    "user_details": response_data,
+                },
+                status=status.HTTP_200_OK
+            )
+        else:
+            pass
+            # Django habdles cases wherethe token does not exist, or if no token was passed.
+
+        
 
 class UserDetailAPIView(APIView):
     # Require authentication

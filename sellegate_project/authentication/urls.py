@@ -7,6 +7,7 @@ from authentication.views import (
     UserLogoutAPIView, 
     UserDetailAPIView, 
     UpdateUserAPIView,
+    TokenStatusAPIView,
 )
 
 urlpatterns = [
@@ -16,5 +17,8 @@ urlpatterns = [
     path('logout/', UserLogoutAPIView.as_view(), name='user-logout'),
     path('user/<int:id>/', UserDetailAPIView.as_view(), name='user_detail'),  # New API endpoint
     path('update-user/', UpdateUserAPIView.as_view(), name='update-user'),
+
+    path('token-status/', TokenStatusAPIView.as_view(), name='token-status'),  # URL pattern for the token status endpoint
+
 
 ]

@@ -27,9 +27,10 @@ class EvaluationRequestAdmin(admin.ModelAdmin):
     ordering = ['-created_at']
 
 
-
-admin.site.register(EvaluatorProfile)
-
+@admin.register(EvaluatorProfile)
+class EvaluatorProfileAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user')  # Display these fields in the list view
+    search_fields = ('user__username', 'bio')  # Enable searching by these fields
 
 
 # OLD \/\/\/\/\/\\/\/\/\/\\/\/\//\
