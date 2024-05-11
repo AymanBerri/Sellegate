@@ -46,4 +46,4 @@ class PaymentAdmin(admin.ModelAdmin):
 
 
 
-admin.site.register(Bid)
+# admin.site.register(Bid)
